@@ -3,11 +3,11 @@
 #include <netinet/in.h>
 #include <errno.h>
 #include <poll.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <signal.h>
 
 void connection_handler(int fd, struct sockaddr_in addr) {
     FILE *f = fdopen(fd, "r+");
@@ -24,17 +24,18 @@ void sigchld_handler(int sig) {
 }
 
 int main(int argc, char **argv) {
-    struct sockaddr_in bind_addr;
     int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (socket_fd == -1) {
         fprintf(stderr, "can't create socket: %s\n", strerror(errno));
         exit(1);
     }
 
+    struct sockaddr_in bind_addr;
     bind_addr.sin_family = AF_INET;
     bind_addr.sin_port = 5032;
     bind_addr.sin_addr.s_addr = INADDR_ANY;
-    if (bind(socket_fd, (struct sockaddr *)&bind_addr, sizeof(bind_addr)) == -1) {
+    if (bind(socket_fd, (struct sockaddr *)&bind_addr,
+        sizeof(bind_addr)) == -1) {
         fprintf(stderr, "can't bind socket: %s\n", strerror(errno));
         close(socket_fd);
         exit(1);
@@ -56,8 +57,8 @@ int main(int argc, char **argv) {
             struct sockaddr_in connection_addr;
             socklen_t connection_addr_length;
         
-            int connection_fd = accept(socket_fd, (struct sockaddr *)&connection_addr,
-                &connection_addr_length);
+            int connection_fd = accept(socket_fd,
+                (struct sockaddr *)&connection_addr, &connection_addr_length);
             if (connection_fd > 0) {
                 pid_t child_pid = vfork(); // Flawfinder: ignore
                 switch (child_pid) {

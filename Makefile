@@ -1,3 +1,8 @@
+# build-time dependencies:
+#   gmake
+#   flawfinder
+#   gcc
+
 CC := gcc
 CFLAGS := -std=c99 -Wall -Werror -pedantic
 
@@ -6,8 +11,10 @@ OBJECTS := $(SOURCES:.c=.o)
 
 .PHONY: all flawfinder splint clean
 
-all: flawfinder splint $(OBJECTS)
-	$(CC) -o pdb $(OBJECTS)
+all: flawfinder splint pdb
+
+pdb: $(OBJECTS)
+	$(CC) -o $@ $(OBJECTS)
 
 clean:
 	rm -f $(OBJECTS)
@@ -22,3 +29,5 @@ flawfinder:
 	fi
 
 splint:
+	@#splint has serious problems on macos
+	@#splint $(SOURCES)
