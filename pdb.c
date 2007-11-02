@@ -66,6 +66,7 @@ int main(int argc, char **argv) {
                         fprintf(stderr, "can't fork: %s\n", strerror(errno));
                         exit(1);
                     case 0:
+                        close(socket_fd);
                         connection_handler(connection_fd, connection_addr);
                         exit(0);
                 }
@@ -76,5 +77,5 @@ int main(int argc, char **argv) {
     }
 
     close(socket_fd);
-    exit(0);
+	exit(0);
 }

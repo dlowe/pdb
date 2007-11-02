@@ -9,9 +9,10 @@ CFLAGS := -std=c99 -Wall -Werror -pedantic
 SOURCES := pdb.c
 OBJECTS := $(SOURCES:.c=.o)
 
-.PHONY: all flawfinder splint clean
+.PHONY: all clean
+.PHONY: check flawfinder splint no-tabs
 
-all: flawfinder splint pdb
+all: check pdb
 
 pdb: $(OBJECTS)
 	$(CC) -o $@ $(OBJECTS)
@@ -19,6 +20,8 @@ pdb: $(OBJECTS)
 clean:
 	rm -f $(OBJECTS)
 	rm -f pdb
+
+check: flawfinder no-tabs
 
 flawfinder:
 	@FF_OUT=`flawfinder -DQ $(SOURCES)`; \
@@ -29,5 +32,7 @@ flawfinder:
 	fi
 
 splint:
-	@#splint has serious problems on macos
-	@#splint $(SOURCES)
+	splint $(SOURCES)
+
+no-tabs:
+	grep -Hn '	' $(SOURCES)
