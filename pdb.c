@@ -27,7 +27,7 @@ void sigchld_handler(int sig)
 
 int main(int argc, char **argv)
 {
-    // daemonize
+    /* daemonize */
     switch (fork()) {
     case 0:
         break;
@@ -38,7 +38,7 @@ int main(int argc, char **argv)
         exit(0);
     }
 
-    // set up network for listening
+    /* set up network for listening */
     int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (socket_fd == -1) {
         fprintf(stderr, "can't create socket: %s\n", strerror(errno));
@@ -55,15 +55,17 @@ int main(int argc, char **argv)
         close(socket_fd);
         exit(1);
     }
+
     if (listen(socket_fd, 0) == -1) {
         fprintf(stderr, "can't listen to socket: %s\n", strerror(errno));
         close(socket_fd);
         exit(1);
     }
 
+    /* set up signal handling to reap children as they exit */
     signal(SIGCHLD, sigchld_handler);
 
-    // wait forever for connections; child processes handle each connection
+    /* wait forever for connections; child processes handle each connection */
     while (1) {
         struct pollfd socket_poll;
         socket_poll.fd = socket_fd;
@@ -77,7 +79,7 @@ int main(int argc, char **argv)
                        &connection_addr_length);
 
             if (connection_fd > 0) {
-                // Flawfinder: ignore vfork
+                /* Flawfinder: ignore vfork */
                 pid_t child_pid = vfork();
                 switch (child_pid) {
                 case -1:

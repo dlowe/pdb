@@ -17,9 +17,9 @@ GNUINDENT := /opt/local/bin/gnuindent
 		echo "flawfinder flagged $<"; \
 		false; \
 	fi
-	@DIFF_OUT=`$(GNUINDENT) -kr -nut -ncs -l78 -st $< | diff $< -`; \
+	@DIFF_OUT=`$(GNUINDENT) -kr -hnl -nut -ncs -l78 -st $< | diff $< -`; \
 	if [ "$${DIFF_OUT}" ]; then \
-                $(GNUINDENT) -kr -nut -ncs -l78 -st $< | diff $< -; \
+                $(GNUINDENT) -kr -hnl -nut -ncs -l78 -st $< | diff $< -; \
 		echo "style mismatch in $<"; \
 		false; \
 	fi

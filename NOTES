@@ -1,3 +1,5 @@
 . some kind of convenience annotation (hints) for specifying that only one of the segments is needed?
 
 . easy movement of segmented data between segments (future)
+
+. packaging: db-specific stuff into shared libraries which can be loaded at runtime depending on configuration.
