@@ -17,10 +17,6 @@ GNUINDENT := /opt/local/bin/gnuindent
 		echo "flawfinder flagged $<"; \
 		false; \
 	fi
-	@if grep -Hn '	' $<; then \
-		echo "tabs in $<"; \
-		false; \
-	fi
 	@DIFF_OUT=`$(GNUINDENT) -kr -nut -ncs -l78 -st $< | diff $< -`; \
 	if [ "$${DIFF_OUT}" ]; then \
                 $(GNUINDENT) -kr -nut -ncs -l78 -st $< | diff $< -; \

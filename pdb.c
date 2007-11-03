@@ -27,6 +27,18 @@ void sigchld_handler(int sig)
 
 int main(int argc, char **argv)
 {
+    // daemonize
+    switch (fork()) {
+    case 0:
+        break;
+    case -1:
+        fprintf(stderr, "can't fork: %s\n", strerror(errno));
+        exit(1);
+    default:
+        exit(0);
+    }
+
+    // set up network for listening
     int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (socket_fd == -1) {
         fprintf(stderr, "can't create socket: %s\n", strerror(errno));
@@ -64,7 +76,7 @@ int main(int argc, char **argv)
                        &connection_addr_length);
 
             if (connection_fd > 0) {
-                // Flawfinder: ignore
+                // Flawfinder: ignore vfork
                 pid_t child_pid = vfork();
                 switch (child_pid) {
                 case -1:
