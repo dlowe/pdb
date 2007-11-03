@@ -77,5 +77,5 @@ int main(int argc, char **argv) {
     }
 
     close(socket_fd);
-	exit(0);
+    exit(0);
 }

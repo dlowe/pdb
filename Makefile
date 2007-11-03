@@ -35,4 +35,7 @@ splint:
 	splint $(SOURCES)
 
 no-tabs:
-	grep -Hn '	' $(SOURCES)
+	@if grep -Hn '	' $(SOURCES); then \
+		echo "evil tabs!"; \
+		false; \
+	fi
