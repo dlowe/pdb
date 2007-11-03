@@ -63,6 +63,7 @@ int main(int argc, char **argv)
 
     signal(SIGCHLD, sigchld_handler);
 
+    // wait forever for connections; child processes handle each connection
     while (1) {
         struct pollfd socket_poll;
         socket_poll.fd = socket_fd;
