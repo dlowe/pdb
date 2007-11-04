@@ -6,25 +6,25 @@
 CC := gcc
 CFLAGS := -std=c99 -Wall -Werror -pedantic
 
-FLAWFINDER := /usr/local/bin/flawfinder
-GNUINDENT := /opt/local/bin/gnuindent
+FLAWFINDER := /usr/local/bin/flawfinder -DQ -m 3
+GNUINDENT := /opt/local/bin/gnuindent -kr -hnl -nut -ncs -l78 -st
 
 .DELETE_ON_ERROR %.o: %.c
 	$(CC) -c $(CFLAGS) $(CPPFLAGS) $< -o $@
-	@FF_OUT=`$(FLAWFINDER) -DQ $<`; \
+	@FF_OUT=`$(FLAWFINDER) $<`; \
 	if [ "$${FF_OUT}" ]; then \
-		echo $${FF_OUT}; \
+                $(FLAWFINDER) $<; \
 		echo "flawfinder flagged $<"; \
 		false; \
 	fi
-	@DIFF_OUT=`$(GNUINDENT) -kr -hnl -nut -ncs -l78 -st $< | diff $< -`; \
+	@DIFF_OUT=`$(GNUINDENT) $< | diff $< -`; \
 	if [ "$${DIFF_OUT}" ]; then \
-                $(GNUINDENT) -kr -hnl -nut -ncs -l78 -st $< | diff $< -; \
+                $(GNUINDENT) $< | diff $< -; \
 		echo "style mismatch in $<"; \
 		false; \
 	fi
 
-SOURCES := pdb.c
+SOURCES := daemon.c pdb.c
 OBJECTS := $(SOURCES:.c=.o)
 
 .PHONY: all clean

@@ -9,6 +9,9 @@
 #include <string.h>
 #include <unistd.h>
 
+/* project includes */
+#include "daemon.h"
+
 void connection_handler(int fd, struct sockaddr_in addr)
 {
     FILE *f = fdopen(fd, "r+");
@@ -27,21 +30,15 @@ void sigchld_handler(int sig)
 
 int main(int argc, char **argv)
 {
-    /* daemonize */
-    switch (fork()) {
-    case 0:
-        break;
-    case -1:
-        fprintf(stderr, "can't fork: %s\n", strerror(errno));
+    if (daemon_begin() == -1) {
+        fprintf(stderr, "error in daemon_begin(): %s\n", strerror(errno));
         exit(1);
-    default:
-        exit(0);
     }
 
     /* set up network for listening */
     int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (socket_fd == -1) {
-        fprintf(stderr, "can't create socket: %s\n", strerror(errno));
+        daemon_error("can't create socket: %s\n", strerror(errno));
         exit(1);
     }
 
@@ -51,16 +48,18 @@ int main(int argc, char **argv)
     bind_addr.sin_addr.s_addr = INADDR_ANY;
     if (bind(socket_fd, (struct sockaddr *)&bind_addr,
              sizeof(bind_addr)) == -1) {
-        fprintf(stderr, "can't bind socket: %s\n", strerror(errno));
+        daemon_error("can't bind socket: %s\n", strerror(errno));
         close(socket_fd);
         exit(1);
     }
 
     if (listen(socket_fd, 0) == -1) {
-        fprintf(stderr, "can't listen to socket: %s\n", strerror(errno));
+        daemon_error("can't listen to socket: %s\n", strerror(errno));
         close(socket_fd);
         exit(1);
     }
+
+    daemon_done();
 
     /* set up signal handling to reap children as they exit */
     signal(SIGCHLD, sigchld_handler);
@@ -83,7 +82,6 @@ int main(int argc, char **argv)
                 pid_t child_pid = vfork();
                 switch (child_pid) {
                 case -1:
-                    fprintf(stderr, "can't fork: %s\n", strerror(errno));
                     exit(1);
                 case 0:
                     close(socket_fd);
