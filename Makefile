@@ -4,7 +4,7 @@
 #   gcc
 
 CC := gcc
-CFLAGS := -std=c99 -Wall -Werror -pedantic
+CFLAGS := -std=c99 -Wall -Werror -pedantic -ggdb
 
 FLAWFINDER := /usr/local/bin/flawfinder -DQ -m 3
 GNUINDENT := /opt/local/bin/gnuindent -kr -hnl -nut -ncs -l78 -st
@@ -24,7 +24,7 @@ GNUINDENT := /opt/local/bin/gnuindent -kr -hnl -nut -ncs -l78 -st
 		false; \
 	fi
 
-SOURCES := daemon.c pdb.c
+SOURCES := daemon.c concurrency.c pdb.c
 OBJECTS := $(SOURCES:.c=.o)
 
 .PHONY: all clean

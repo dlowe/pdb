@@ -10,9 +10,10 @@
 #include <unistd.h>
 
 /* project includes */
+#include "concurrency.h"
 #include "daemon.h"
 
-void connection_handler(int fd, struct sockaddr_in addr)
+static void connection_handler(int fd, struct sockaddr_in *addr)
 {
     FILE *f = fdopen(fd, "r+");
     if (f) {
@@ -22,10 +23,10 @@ void connection_handler(int fd, struct sockaddr_in addr)
     return;
 }
 
-void sigchld_handler(int sig)
+static short dead;
+static void sigterm_handler(int sig)
 {
-    int status;
-    wait4(-1, &status, WNOHANG, 0);
+    dead = 1;
 }
 
 int main(int argc, char **argv)
@@ -61,11 +62,14 @@ int main(int argc, char **argv)
 
     daemon_done();
 
-    /* set up signal handling to reap children as they exit */
-    signal(SIGCHLD, sigchld_handler);
+    concurrency_setup();
 
-    /* wait forever for connections; child processes handle each connection */
-    while (1) {
+    /* set up signal handling */
+    signal(SIGTERM, sigterm_handler);
+
+    /* wait for connections; child processes handle each connection */
+    dead = 0;
+    while (!dead) {
         struct pollfd socket_poll;
         socket_poll.fd = socket_fd;
         socket_poll.events = POLLIN;
@@ -78,21 +82,18 @@ int main(int argc, char **argv)
                        &connection_addr_length);
 
             if (connection_fd > 0) {
-                /* Flawfinder: ignore vfork */
-                pid_t child_pid = vfork();
-                switch (child_pid) {
-                case -1:
+                int child = concurrency_handle_connection(connection_fd,
+                                                          &connection_addr,
+                                                          connection_handler);
+                if (child == -1) {
                     exit(1);
-                case 0:
-                    close(socket_fd);
-                    connection_handler(connection_fd, connection_addr);
-                    exit(0);
                 }
-
-                close(connection_fd);
             }
         }
+        concurrency_join_finished();
     }
+
+    concurrency_teardown();
 
     close(socket_fd);
     exit(0);

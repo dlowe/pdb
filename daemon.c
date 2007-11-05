@@ -48,7 +48,7 @@ int daemon_begin(void)
                 exit(1);
             default:
                 /* child didn't initialize successully */
-                fprintf(stderr, "error: %s\n", buffer);
+                fprintf(stderr, "error: %s", buffer);
                 exit(1);
             }
         }
@@ -87,7 +87,7 @@ void daemon_error(const char *format, ...)
     vsnprintf(buffer, sizeof(buffer), format, args);
     va_end(args);
 
-    write(error_pipe[1], buffer, strlen(buffer));
+    write(error_pipe[1], buffer, strlen(buffer) + 1);
 }
 
 /* daemon_done
