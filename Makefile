@@ -2,12 +2,15 @@
 #   gmake
 #   flawfinder
 #   gcc
+#   gnuindent
+#   doxygen
 
 CC := gcc
 CFLAGS := -std=c99 -Wall -Werror -pedantic -ggdb
 
 FLAWFINDER := /usr/local/bin/flawfinder -DQ -m 3
 GNUINDENT := /opt/local/bin/gnuindent -kr -hnl -nut -ncs -l78 -st
+DOXYGEN := /Applications/Doxygen.app/Contents/Resources/doxygen doxygen.cfg
 
 .DELETE_ON_ERROR %.o: %.c
 	$(CC) -c $(CFLAGS) $(CPPFLAGS) $< -o $@
@@ -25,15 +28,25 @@ GNUINDENT := /opt/local/bin/gnuindent -kr -hnl -nut -ncs -l78 -st
 	fi
 
 SOURCES := daemon.c concurrency.c pdb.c
+HEADERS := daemon.h concurrency.h
 OBJECTS := $(SOURCES:.c=.o)
 
 .PHONY: all clean
 
-all: pdb
+all: pdb doxygen
 
 pdb: $(OBJECTS)
 	$(CC) -o $@ $(OBJECTS)
 
+doxygen: $(SOURCES) $(HEADERS) doxygen.cfg
+	rm -rf $@
+	$(DOXYGEN)
+
 clean:
 	rm -f $(OBJECTS)
 	rm -f pdb
+	rm -rf doxygen
+
+daemon.o: daemon.h
+concurrency.o: concurrency.h
+pdb.o: daemon.h concurrency.h

@@ -10,16 +10,10 @@
 /* project includes */
 #include "concurrency.h"
 
-/**
- * Set up concurrency strategy
- */
 void concurrency_setup(void)
 {
 }
 
-/**
- * Clean up concurrent work (joins all children).
- */
 void concurrency_teardown(void)
 {
     int status;
@@ -30,15 +24,6 @@ void concurrency_teardown(void)
     } while (pid > -1 || errno != ECHILD);
 }
 
-/**
- * Spawn a new context to handle a network connection.
- *
- * @param[in] connection_fd Connected file descriptor
- * @param[in] connection_addr Structure describing the connection
- * @param[in] handler Function which will be called in the a concurrent context
- * @return A unique identifier for the child's context. On failure, returns -1
- *   and sets errno.
- */
 int concurrency_handle_connection(int connection_fd,
                                   struct sockaddr_in *connection_addr,
                                   void (*handler) (int, struct sockaddr_in *))
@@ -58,10 +43,6 @@ int concurrency_handle_connection(int connection_fd,
     return 0;
 }
 
-/**
- * Join all children which have finished work, i.e. those which can be
- * joined without waiting.
- */
 void concurrency_join_finished(void)
 {
     int status;

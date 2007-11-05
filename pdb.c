@@ -20,6 +20,7 @@ static void connection_handler(int fd, struct sockaddr_in *addr)
         fprintf(f, "poot!\n");
         fclose(f);
     }
+    close(fd);
     return;
 }
 
