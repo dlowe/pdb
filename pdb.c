@@ -42,6 +42,13 @@ int main(int argc, char **argv)
         exit(1);
     }
 
+    int one = 1;
+    if (setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, (char *)&one,
+                   sizeof(one)) == -1) {
+        daemon_error("can't set reuseaddr: %s\n", strerror(errno));
+        exit(1);
+    }
+
     struct sockaddr_in bind_addr;
     bind_addr.sin_family = AF_INET;
     bind_addr.sin_port = 5032;
