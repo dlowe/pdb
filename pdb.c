@@ -1,3 +1,4 @@
+/* system includes */
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -72,6 +73,7 @@ int main(int argc, char **argv)
     dead = 0;
     while (!dead) {
         struct pollfd socket_poll;
+
         socket_poll.fd = socket_fd;
         socket_poll.events = POLLIN;
         socket_poll.revents = 0;
