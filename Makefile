@@ -41,7 +41,7 @@ pdb: $(OBJECTS)
 	$(CC) -o $@ $(OBJECTS)
 
 test: pdb
-	prove test/*
+	prove test
 
 doxygen: $(SOURCES) $(HEADERS) doxygen.cfg
 	rm -rf $@
