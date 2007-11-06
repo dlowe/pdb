@@ -4,6 +4,8 @@
 #   gcc
 #   gnuindent
 #   doxygen
+#   perl
+#   prove
 
 CC := gcc
 CFLAGS := -std=c99 -Wall -Werror -pedantic -ggdb
@@ -31,12 +33,15 @@ SOURCES := daemon.c concurrency.c pdb.c
 HEADERS := daemon.h concurrency.h
 OBJECTS := $(SOURCES:.c=.o)
 
-.PHONY: all clean
+.PHONY: all clean test
 
 all: pdb doxygen
 
 pdb: $(OBJECTS)
 	$(CC) -o $@ $(OBJECTS)
+
+test: pdb
+	prove test/*
 
 doxygen: $(SOURCES) $(HEADERS) doxygen.cfg
 	rm -rf $@

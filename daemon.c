@@ -56,7 +56,7 @@ int daemon_begin(void)
     }
 
     /* close all file descriptors except the pipe to parent */
-    for (int fd = 0; fd < getdtablesize(); ++fd) {
+    for (int fd = 0, max_fd = getdtablesize(); fd < max_fd; ++fd) {
         if (fd != error_pipe[1]) {
             close(fd);
         }

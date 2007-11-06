@@ -16,11 +16,8 @@
 
 static void connection_handler(int fd, struct sockaddr_in *addr)
 {
-    FILE *f = fdopen(fd, "r+");
-    if (f) {
-        fprintf(f, "poot!\n");
-        fclose(f);
-    }
+    write(fd, "poot!\n", 6);
+    shutdown(fd, SHUT_RDWR);
     close(fd);
     return;
 }
