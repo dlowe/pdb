@@ -6,7 +6,7 @@ use warnings;
 use Test;
 use Socket;
 use DBI;
-use DBD::mysql;
+use DBD::Pg;
 
 BEGIN { plan tests => 0 }
 
