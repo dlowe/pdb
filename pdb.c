@@ -13,7 +13,10 @@
 /* project includes */
 #include "concurrency.h"
 #include "daemon.h"
-#include "mysql_server.h"
+#include "db_driver.h"
+#include "delegate.h"
+
+static void driver(int fd, struct sockaddr_in *addr);
 
 static short dead;
 static void sigterm_handler(int sig)
@@ -84,7 +87,7 @@ int main(int argc, char **argv)
             if (connection_fd > 0) {
                 int child = concurrency_handle_connection(connection_fd,
                                                           &connection_addr,
-                                                          mysql_server);
+                                                          driver);
                 if (child == -1) {
                     exit(1);
                 }
@@ -97,4 +100,39 @@ int main(int argc, char **argv)
 
     close(socket_fd);
     exit(0);
+}
+
+/**
+ * Top-level sequencing of a single connection.
+ *
+ * @param[in] fd connected file descriptor
+ * @param[in] addr information about the connection
+ */
+static void driver(int fd, struct sockaddr_in *addr)
+{
+    db_driver db;
+
+    db = db_driver_load("mysql");
+
+    /* establish network connections to all delegate databases */
+    delegate_connect();
+
+    /* loop over input stream */
+    while (!db.done()) {
+        command command = db.get_next_command(fd);
+        action *actions = db.actions_from(command);
+        reply final_reply;
+        for (int i = 0; actions[i]; ++i) {
+            reply *replies = delegate_action(actions[i], command);
+            final_reply = db.reduce_replies(replies);
+        }
+        db.send_reply(fd, final_reply);
+    }
+
+    /* teardown all the delegate connections */
+    delegate_disconnect();
+
+    shutdown(fd, SHUT_RDWR);
+    close(fd);
+    return;
 }

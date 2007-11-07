@@ -29,13 +29,15 @@ DOXYGEN := /Applications/Doxygen.app/Contents/Resources/doxygen doxygen.cfg
 		false; \
 	fi
 
-SOURCES := daemon.c concurrency.c mysql_server.c pdb.c
-HEADERS := daemon.h concurrency.h
+SOURCES := daemon.c concurrency.c db_driver.c mysql_driver.c pdb.c delegate.c
+HEADERS := daemon.h concurrency.h db_driver.h mysql_driver.h command.h delegate.h
 OBJECTS := $(SOURCES:.c=.o)
 
-.PHONY: all clean test
+.PHONY: all all-no-test clean test
 
-all: pdb doxygen
+all: all-no-test test
+
+all-no-test: pdb doxygen
 
 pdb: $(OBJECTS)
 	$(CC) -o $@ $(OBJECTS)
@@ -48,11 +50,12 @@ doxygen: $(SOURCES) $(HEADERS) doxygen.cfg
 	$(DOXYGEN)
 
 clean:
+	rm -f dependencies.mk
 	rm -f $(OBJECTS)
 	rm -f pdb
 	rm -rf doxygen
 
-daemon.o: daemon.h
-concurrency.o: concurrency.h
-mysql_server.o: mysql_server.h
-pdb.o: daemon.h concurrency.h mysql_server.h
+-include dependencies.mk
+
+dependencies.mk: $(SOURCES) $(HEADERS)
+	$(CC) -MM $(SOURCES) > dependencies.mk

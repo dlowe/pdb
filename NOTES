@@ -37,3 +37,6 @@
 -> generic function builds reply set
 -> db-specific function gets reply set and aggregates into single "reply" bytes
 -> generic function writes bytes.
+
+. minimal implementation should not handle "connection pooling": instead do the simple thing (each connection is a connection to all sub-databases). Connection
+pooling is, I believe, usually built *above* the connection, in the client.
