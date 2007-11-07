@@ -29,7 +29,7 @@ DOXYGEN := /Applications/Doxygen.app/Contents/Resources/doxygen doxygen.cfg
 		false; \
 	fi
 
-SOURCES := daemon.c concurrency.c pdb.c
+SOURCES := daemon.c concurrency.c mysql_server.c pdb.c
 HEADERS := daemon.h concurrency.h
 OBJECTS := $(SOURCES:.c=.o)
 
@@ -54,4 +54,5 @@ clean:
 
 daemon.o: daemon.h
 concurrency.o: concurrency.h
-pdb.o: daemon.h concurrency.h
+mysql_server.o: mysql_server.h
+pdb.o: daemon.h concurrency.h mysql_server.h

@@ -22,8 +22,8 @@ int  daemon_begin(void);
 /**
  * Used to report problems between forking and opening some other form of
  * communication for error reporting.
- * @param format a printf() style format string
- * @param ... printf() style argument list
+ * @param[in] format a printf() style format string
+ * @param[in] ... printf() style argument list
  */
 void daemon_error(const char *format, ...);
 

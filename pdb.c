@@ -13,14 +13,7 @@
 /* project includes */
 #include "concurrency.h"
 #include "daemon.h"
-
-static void connection_handler(int fd, struct sockaddr_in *addr)
-{
-    write(fd, "poot!\n", 6);
-    shutdown(fd, SHUT_RDWR);
-    close(fd);
-    return;
-}
+#include "mysql_server.h"
 
 static short dead;
 static void sigterm_handler(int sig)
@@ -91,7 +84,7 @@ int main(int argc, char **argv)
             if (connection_fd > 0) {
                 int child = concurrency_handle_connection(connection_fd,
                                                           &connection_addr,
-                                                          connection_handler);
+                                                          mysql_server);
                 if (child == -1) {
                     exit(1);
                 }
