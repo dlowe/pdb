@@ -4,7 +4,7 @@
 #   gcc
 #   gnuindent
 #   doxygen
-#   perl
+#   perl (Test, Socket, DBI, DBD::Pg, DBD::mysql)
 #   prove
 
 CC := gcc
