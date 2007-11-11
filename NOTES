@@ -40,3 +40,9 @@
 
 . minimal implementation should not handle "connection pooling": instead do the simple thing (each connection is a connection to all sub-databases). Connection
 pooling is, I believe, usually built *above* the connection, in the client.
+
+. use simple embedded database (SQLite) to do function application (MAX(), etc...) on the returns of parallel queries
+
+. minimal implementation should NOT be capable of joins between "gdb" and "ldb" tables. Focus on the two primary use cases: 1) access to a single db; 2) parallelized access to all dbs. Other cases (joins which cross gdb/ldb and joins which require serialized access to all segments e.g. cartesian product of two segmented tables) can come later.
+
+. support segment_id as a "virtual column" in segmented tables to bring this metadata up into client applications.
