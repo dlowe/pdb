@@ -114,8 +114,14 @@ static void driver(int fd, struct sockaddr_in *addr)
 
     db = db_driver_load("mysql");
 
-    /* establish network connections to all delegate databases */
+    /* establish network-level connections to all delegate databases */
     delegate_connect();
+
+    /* for the initial part of the connection, the server-side drives the
+       conversation */
+    reply *greetings = delegate_action(ACTION_NOOP_ALL, 0);
+    reply greeting = db.reduce_replies(greetings);
+    db.send_reply(fd, greeting);
 
     /* loop over input stream */
     while (!db.done()) {
