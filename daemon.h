@@ -1,8 +1,9 @@
 #ifndef __DAEMON_H
 #define __DAEMON_H
 
-/** \file daemon.h
- * \brief Daemonize.
+/**
+ * @file daemon.h
+ * @brief Daemonize.
  *
  * Functions for cleanly detaching from the invoking terminal. This API allows
  * a process to fork early, but maintain the ability to report problems back

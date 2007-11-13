@@ -1,7 +1,8 @@
 #ifndef _DB_DRIVER_H
 #define _DB_DRIVER_H
 
-/** @file db_driver.h
+/**
+ * @file db_driver.h
  * @brief "Interface" for database drivers
  *
  * This file describes the interface which database drivers must satisfy to

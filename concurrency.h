@@ -1,7 +1,8 @@
 #ifndef __CONCURRENCY_H
 #define __CONCURRENCY_H
 
-/** @file concurrency.h
+/**
+ * @file concurrency.h
  * @brief Concurrently handle network connections.
  *
  * A simple API which (hopefully) keeps the nuts and bolts of managing a bunch

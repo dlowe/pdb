@@ -5,9 +5,11 @@
 #include <errno.h>
 #include <poll.h>
 #include <signal.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <syslog.h>
 #include <unistd.h>
 
 /* project includes */
@@ -115,7 +117,12 @@ static void driver(int fd, struct sockaddr_in *addr)
     db = db_driver_load("mysql");
 
     /* establish network-level connections to all delegate databases */
-    delegate_connect();
+    if (delegate_connect() == -1) {
+        syslog(LOG_ERR, "error connecting to a delegate: %m");
+        shutdown(fd, SHUT_RDWR);
+        close(fd);
+        return;
+    }
 
     /* for the initial part of the connection, the server-side drives the
        conversation */
