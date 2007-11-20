@@ -75,6 +75,9 @@ static reply *gather_replies(reply_status(*get_next_reply) (int, reply *))
     if (!replies) {
         return 0;
     }
+    for (int i = 0; i < delegate_count; ++i) {
+        replies[i].bytes = 0;
+    }
 
     int pending_replies = delegate_count;
     for (int i = 0; i < delegate_count; ++i) {

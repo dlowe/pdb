@@ -1,7 +1,11 @@
 #ifndef _REPLY_H
 #define _REPLY_H
 
-typedef int reply;
+typedef struct {
+    char *bytes;
+    int allocated;
+    int size;
+} reply;
 
 typedef enum {
     REPLY_ERROR,

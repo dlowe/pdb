@@ -18,7 +18,7 @@
  * daemon_done().
  * @return 0 on success. On failure, returns -1 and sets errno.
  */
-int  daemon_begin(void);
+int daemon_begin(void);
 
 /**
  * Used to report problems between forking and opening some other form of

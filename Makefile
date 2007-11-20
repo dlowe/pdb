@@ -9,7 +9,8 @@
 #   gcov
 
 CC := gcc
-CFLAGS := -fprofile-arcs -ftest-coverage -std=c99 -Wall -Werror -pedantic -ggdb
+CFLAGS := -std=c99 -Wall -Werror -pedantic -ggdb
+# CFLAGS := -fprofile-arcs -ftest-coverage -std=c99 -Wall -Werror -pedantic -ggdb
 
 FLAWFINDER := /usr/local/bin/flawfinder -DQ -m 3
 GNUINDENT := /opt/local/bin/gnuindent -kr -hnl -nut -ncs -l78 -st
@@ -41,11 +42,12 @@ all: all-no-test test
 all-no-test: pdb doxygen
 
 pdb: $(OBJECTS)
-	$(CC) -o $@ $(OBJECTS) -lgcov
+	$(CC) -o $@ $(OBJECTS)
+	# $(CC) -o $@ $(OBJECTS) -lgcov
 
 test: pdb
 	prove -r test
-	gcov $(SOURCES)
+	# gcov $(SOURCES)
 
 doxygen: $(SOURCES) $(HEADERS) doxygen.cfg
 	rm -rf $@
@@ -57,6 +59,7 @@ clean:
 	rm -f pdb
 	rm -rf doxygen
 	rm -rf *.gcda *.gcno *.gcov
+	rm -rf ktrace.out
 
 -include dependencies.mk
 
