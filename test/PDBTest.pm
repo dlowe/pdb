@@ -18,7 +18,7 @@ sub startup {
 }
 
 sub pid {
-    my $pid = `ps -ax | grep $pdb | grep -v grep | awk '{print \$1}'`;
+    my $pid = `ps -ax | grep $pdb | grep -v grep | head -1 | awk '{print \$1}'`;
     chomp $pid;
     return $pid;
 }

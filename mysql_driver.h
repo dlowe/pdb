@@ -27,6 +27,15 @@ short mysql_driver_done(void);
 command mysql_driver_get_next_command(int fd);
 
 /**
+ * Read the next reply from a file descriptor.
+ *
+ * @param[in] fd a connected file descriptor from which to read reply.
+ * @param[in,out] r a reply buffer
+ * @return the status of the read
+ */
+reply_status mysql_driver_get_next_reply(int fd, reply *r);
+
+/**
  * Map a command into a list of actions.
  *
  * @param[in] in_command the command from which to determine an action.

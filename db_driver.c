@@ -8,6 +8,7 @@ db_driver db_driver_load(char *db_driver_name)
 
     db.done = mysql_driver_done;
     db.get_next_command = mysql_driver_get_next_command;
+    db.get_next_reply = mysql_driver_get_next_reply;
     db.actions_from = mysql_driver_actions_from;
     db.reduce_replies = mysql_driver_reduce_replies;
     db.send_reply = mysql_driver_send_reply;

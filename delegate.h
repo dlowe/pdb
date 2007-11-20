@@ -20,7 +20,14 @@
  */
 int delegate_connect(void);
 
-reply* delegate_action(action what, command with);
+/**
+ *
+ * @param[in] what what action to delegate
+ * @param[in] with what command is being delegated
+ * @param[in] get_next_reply driver function for reading the next reply
+ * @return list of replies from all delegates
+ */
+reply* delegate_action(action what, command with, reply_status (*get_next_reply)(int, reply *));
 
 /**
  * Clean up after an action.

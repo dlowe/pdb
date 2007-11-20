@@ -8,7 +8,7 @@
 /* project includes */
 #include "mysql_driver.h"
 
-static short done = 0;
+static short done = 1;
 
 short mysql_driver_done(void)
 {
@@ -31,8 +31,12 @@ command mysql_driver_get_next_command(int fd)
             syslog(LOG_INFO, "command: %s", buffer);
         }
     }
-    done = 1;
     return 0;
+}
+
+reply_status mysql_driver_get_next_reply(int fd, reply * r)
+{
+    return REPLY_COMPLETE;
 }
 
 action *mysql_driver_actions_from(command in_command)

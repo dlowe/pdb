@@ -19,6 +19,7 @@
 typedef struct {
     short (*done)(void);
     command (*get_next_command)(int);
+    reply_status (*get_next_reply)(int, reply *);
     action* (*actions_from)(command);
     reply (*reduce_replies)(reply[]);
     void (*send_reply)(int, reply);

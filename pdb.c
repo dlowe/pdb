@@ -126,7 +126,7 @@ static void driver(int fd, struct sockaddr_in *addr)
 
     /* for the initial part of the connection, the server-side drives the
        conversation */
-    reply *greetings = delegate_action(ACTION_NOOP_ALL, 0);
+    reply *greetings = delegate_action(ACTION_NOOP_ALL, 0, db.get_next_reply);
     reply greeting = db.reduce_replies(greetings);
     db.send_reply(fd, greeting);
 
@@ -136,7 +136,8 @@ static void driver(int fd, struct sockaddr_in *addr)
         action *actions = db.actions_from(command);
         reply final_reply;
         for (int i = 0; actions[i]; ++i) {
-            reply *replies = delegate_action(actions[i], command);
+            reply *replies = delegate_action(actions[i], command,
+                                             db.get_next_reply);
             final_reply = db.reduce_replies(replies);
         }
         db.send_reply(fd, final_reply);
