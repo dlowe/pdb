@@ -180,7 +180,7 @@ static void driver(int fd, struct sockaddr_in *addr)
     /* for the initial part of the connection, the server-side drives the
        conversation */
     packet *greetings = delegate_action(ACTION_NOOP_ALL, packet_null(),
-                                        db.get_packet);
+                                        db.put_packet, db.get_packet);
     packet greeting = db.reduce_replies(greetings);
     if (send_reply(fd, &greeting, db.put_packet) == -1) {
         syslog(LOG_ERR, "error sending reply: %m");
@@ -200,13 +200,11 @@ static void driver(int fd, struct sockaddr_in *addr)
             return;
         }
 
-        action *actions = db.actions_from(in_command);
-        packet final_reply;
-        for (int i = 0; actions[i]; ++i) {
-            packet *replies = delegate_action(actions[i], in_command,
-                                              db.get_packet);
-            final_reply = db.reduce_replies(replies);
-        }
+        packet *replies = delegate_action(db.actions_from(in_command),
+                                          &in_command, db.put_packet,
+                                          db.get_packet);
+        packet final_reply = db.reduce_replies(replies);
+
         if (send_reply(fd, &final_reply, db.put_packet) == -1) {
             syslog(LOG_ERR, "error sending reply: %m");
             shutdown(fd, SHUT_RDWR);

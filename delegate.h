@@ -23,10 +23,12 @@ int delegate_connect(void);
  *
  * @param[in] what what action to delegate
  * @param[in] with what command is being delegated
- * @param[in] get_packet driver function for reading the next reply
+ * @param[in] put_packet driver function for writing commands
+ * @param[in] get_packet driver function for reading replies
  * @return list of replies from all delegates
  */
-packet* delegate_action(action what, packet with, packet_reader get_packet);
+packet* delegate_action(action what, packet *with, packet_writer put_packet,
+                        packet_reader get_packet);
 
 /**
  * Clean up after an action.

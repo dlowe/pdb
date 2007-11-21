@@ -19,7 +19,7 @@ typedef struct {
     short (*done)(void);
     packet_reader get_packet;
     packet_writer put_packet;
-    action* (*actions_from)(packet);
+    action (*actions_from)(packet);
     packet (*reduce_replies)(packet *);
 } db_driver;
 

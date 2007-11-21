@@ -43,9 +43,9 @@ packet_status mysql_driver_put_packet(int fd, packet *p, int *sent);
  * Map a command into a list of actions.
  *
  * @param[in] in_command the command from which to determine an action.
- * @return a list of actions
+ * @return an action
  */
-action* mysql_driver_actions_from(packet in_command);
+action mysql_driver_actions_from(packet in_command);
 
 /**
  * Reduce a set of replies into a single packet.

@@ -17,7 +17,7 @@ typedef struct {
     short connected;
     int port;
     char *ip;
-    short read_pending;
+    short pending;
     int poll_index;
 } delegate;
 
@@ -66,6 +66,9 @@ void delegate_disconnect(void)
 }
 
 /**
+ * Parallel reading of a set of packets from a set of delegate servers.
+ *
+ * @param[in] get_packet function for reading a single packet
  * @return a list of replies gathered from delegate servers.
  */
 static packet *gather_replies(packet_reader get_packet)
@@ -80,7 +83,7 @@ static packet *gather_replies(packet_reader get_packet)
 
     int pending_replies = delegate_count;
     for (int i = 0; i < delegate_count; ++i) {
-        delegates[i].read_pending = 1;
+        delegates[i].pending = 1;
     }
 
     while (pending_replies > 0) {
@@ -93,7 +96,7 @@ static packet *gather_replies(packet_reader get_packet)
         }
 
         for (int i = 0, j = 0; i < delegate_count; ++i) {
-            if (delegates[i].read_pending) {
+            if (delegates[i].pending) {
                 reply_poll[j].fd = delegates[i].fd;
                 reply_poll[j].events = POLLIN;
                 reply_poll[j].revents = 0;
@@ -109,7 +112,7 @@ static packet *gather_replies(packet_reader get_packet)
         }
 
         for (int i = 0; i < delegate_count; ++i) {
-            if (delegates[i].read_pending) {
+            if (delegates[i].pending) {
                 if (reply_poll[delegates[i].poll_index].revents & POLLIN) {
                     switch (get_packet(delegates[i].fd, &replies[i])) {
                     case PACKET_ERROR:
@@ -120,7 +123,7 @@ static packet *gather_replies(packet_reader get_packet)
                         break;
                     case PACKET_COMPLETE:
                         --pending_replies;
-                        delegates[i].read_pending = 0;
+                        delegates[i].pending = 0;
                         break;
                     };
                 }
@@ -133,12 +136,91 @@ static packet *gather_replies(packet_reader get_packet)
     return replies;
 }
 
-packet *delegate_action(action what, packet with, packet_reader get_packet)
+/**
+ * Parallel writing of a packet to a set of delegate servers.
+ *
+ * @param[in] command the packet to write to all delegates.
+ * @param[in] put_packet function for writing a single packet.
+ * @return 1 on success, 0 on failure
+ */
+static int proxy_command(packet * command, packet_writer put_packet)
+{
+    int *sent_list = malloc(sizeof(int) * delegate_count);
+    if (!sent_list) {
+        return 0;
+    }
+
+    int pending_writes = delegate_count;
+    for (int i = 0; i < delegate_count; ++i) {
+        sent_list[i] = 0;
+        delegates[i].pending = 1;
+    }
+
+    while (pending_writes > 0) {
+        struct pollfd *proxy_poll =
+            malloc(sizeof(struct pollfd) * pending_writes);
+
+        if (!proxy_poll) {
+            free(sent_list);
+            return 0;
+        }
+
+        for (int i = 0, j = 0; i < delegate_count; ++i) {
+            if (delegates[i].pending) {
+                proxy_poll[j].fd = delegates[i].fd;
+                proxy_poll[j].events = POLLOUT;
+                proxy_poll[j].revents = 0;
+                delegates[i].poll_index = j;
+                ++j;
+            }
+        }
+
+        if (poll(proxy_poll, pending_writes, -1) <= 0) {
+            free(sent_list);
+            free(proxy_poll);
+            return 0;
+        }
+
+        for (int i = 0; i < delegate_count; ++i) {
+            if (delegates[i].pending) {
+                if (proxy_poll[delegates[i].poll_index].revents & POLLOUT) {
+                    switch (put_packet(delegates[i].fd, command,
+                                       &sent_list[i])) {
+                    case PACKET_ERROR:
+                        free(sent_list);
+                        free(proxy_poll);
+                        return 0;
+                    case PACKET_INCOMPLETE:
+                        break;
+                    case PACKET_COMPLETE:
+                        --pending_writes;
+                        delegates[i].pending = 0;
+                        break;
+                    };
+                }
+            }
+        }
+
+        free(proxy_poll);
+    }
+
+    free(sent_list);
+
+    return 1;
+}
+
+packet *delegate_action(action what, packet * command,
+                        packet_writer put_packet, packet_reader get_packet)
 {
     switch (what) {
     case ACTION_NONE:
         return 0;
     case ACTION_NOOP_ALL:
+        return gather_replies(get_packet);
+    case ACTION_PROXY_ALL:
+        if (!proxy_command(command, put_packet)) {
+            return 0;
+        }
         return gather_replies(get_packet);
     };
     return 0;

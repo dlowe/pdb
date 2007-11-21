@@ -3,7 +3,8 @@
 
 typedef enum {
     ACTION_NONE,
-    ACTION_NOOP_ALL
+    ACTION_NOOP_ALL,
+    ACTION_PROXY_ALL
 } action;
 
 #endif

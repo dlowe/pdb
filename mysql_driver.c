@@ -11,7 +11,7 @@
 
 #define HEADER_SIZE 4
 
-static short done = 1;
+static short done = 0;
 
 short mysql_driver_done(void)
 {
@@ -80,6 +80,8 @@ packet_status mysql_driver_get_packet(int fd, packet * p)
 
 packet_status mysql_driver_put_packet(int fd, packet * p, int *sent)
 {
+    syslog(LOG_ERR, "put");
+
     if (p->bytes == 0) {
         return PACKET_ERROR;
     }
@@ -102,9 +104,9 @@ packet_status mysql_driver_put_packet(int fd, packet * p, int *sent)
     return PACKET_COMPLETE;
 }
 
-action *mysql_driver_actions_from(packet in_command)
+action mysql_driver_actions_from(packet in_command)
 {
-    return ACTION_NONE;
+    return ACTION_PROXY_ALL;
 }
 
 packet mysql_driver_reduce_replies(packet * replies)

@@ -16,6 +16,6 @@ typedef enum {
 typedef packet_status (*packet_reader)(int, packet *);
 typedef packet_status (*packet_writer)(int, packet *, int *);
 
-packet packet_null(void);
+packet *packet_null(void);
 
 #endif
