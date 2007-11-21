@@ -10,8 +10,7 @@
  */
 
 #include "action.h"
-#include "command.h"
-#include "reply.h"
+#include "packet.h"
 
 /**
  * Connect to all delegates.
@@ -24,17 +23,17 @@ int delegate_connect(void);
  *
  * @param[in] what what action to delegate
  * @param[in] with what command is being delegated
- * @param[in] get_next_reply driver function for reading the next reply
+ * @param[in] get_packet driver function for reading the next reply
  * @return list of replies from all delegates
  */
-reply* delegate_action(action what, command with, reply_status (*get_next_reply)(int, reply *));
+packet* delegate_action(action what, packet with, packet_reader get_packet);
 
 /**
  * Clean up after an action.
  *
  * @param[in,out] replies pointer to a list of replies (will be freed!)
  */
-void delegate_action_cleanup(reply *replies);
+void delegate_action_cleanup(packet *replies);
 
 /**
  * Disconnect from all delegates.

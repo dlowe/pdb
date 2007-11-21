@@ -3,6 +3,7 @@
 #include <sys/types.h>
 #include <sys/resource.h>
 #include <sys/wait.h>
+#include <signal.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
@@ -28,13 +29,13 @@ int concurrency_handle_connection(int connection_fd,
                                   struct sockaddr_in *connection_addr,
                                   void (*handler) (int, struct sockaddr_in *))
 {
-    /* Flawfinder: ignore vfork */
-    pid_t child_pid = vfork();
+    pid_t child_pid = fork();
 
     switch (child_pid) {
     case -1:
         return -1;
     case 0:
+        signal(SIGTERM, SIG_DFL);
         handler(connection_fd, connection_addr);
         exit(0);
     }

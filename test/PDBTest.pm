@@ -12,7 +12,7 @@ sub exists {
 }
 
 sub startup {
-    my $output = `$pdb 2>&1`;
+    my $output = `ktrace -i $pdb 2>&1`;
     die $output if $output ne '';
     return pid();
 }
@@ -25,6 +25,7 @@ sub pid {
 
 sub shutdown {
     my $pid = pid();
+    print STDERR "kill $pid";
     my $output = `kill $pid`;
     die $output if $output ne '';
     select(undef, undef, undef, 0.250);

@@ -9,9 +9,8 @@
 
 /* project includes */
 #include "action.h"
-#include "command.h"
 #include "delegate.h"
-#include "reply.h"
+#include "packet.h"
 
 typedef struct {
     int fd;
@@ -69,9 +68,9 @@ void delegate_disconnect(void)
 /**
  * @return a list of replies gathered from delegate servers.
  */
-static reply *gather_replies(reply_status(*get_next_reply) (int, reply *))
+static packet *gather_replies(packet_reader get_packet)
 {
-    reply *replies = malloc(sizeof(reply) * delegate_count);
+    packet *replies = malloc(sizeof(packet) * delegate_count);
     if (!replies) {
         return 0;
     }
@@ -112,14 +111,14 @@ static reply *gather_replies(reply_status(*get_next_reply) (int, reply *))
         for (int i = 0; i < delegate_count; ++i) {
             if (delegates[i].read_pending) {
                 if (reply_poll[delegates[i].poll_index].revents & POLLIN) {
-                    switch (get_next_reply(delegates[i].fd, &replies[i])) {
-                    case REPLY_ERROR:
+                    switch (get_packet(delegates[i].fd, &replies[i])) {
+                    case PACKET_ERROR:
                         free(replies);
                         free(reply_poll);
                         return 0;
-                    case REPLY_INCOMPLETE:
+                    case PACKET_INCOMPLETE:
                         break;
-                    case REPLY_COMPLETE:
+                    case PACKET_COMPLETE:
                         --pending_replies;
                         delegates[i].read_pending = 0;
                         break;
@@ -134,19 +133,18 @@ static reply *gather_replies(reply_status(*get_next_reply) (int, reply *))
     return replies;
 }
 
-reply *delegate_action(action what, command with,
-                       reply_status(*get_next_reply) (int, reply *))
+packet *delegate_action(action what, packet with, packet_reader get_packet)
 {
     switch (what) {
     case ACTION_NONE:
         return 0;
     case ACTION_NOOP_ALL:
-        return gather_replies(get_next_reply);
+        return gather_replies(get_packet);
     };
     return 0;
 }
 
-void delegate_action_cleanup(reply * replies)
+void delegate_action_cleanup(packet * replies)
 {
     if (replies) {
         free(replies);

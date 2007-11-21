@@ -105,6 +105,59 @@ int main(int argc, char **argv)
 }
 
 /**
+ * Synchronously send a single reply.
+ *
+ * @param[in] fd connected file descriptor
+ * @param[in] p packet to send
+ * @param[in] put_packet function to use to send packet
+ * @return 0 on success, -1 on failure
+ */
+static int send_reply(int fd, packet * p, packet_writer put_packet)
+{
+    int sent = 0;
+    packet_status status;
+
+    do {
+        status = put_packet(fd, p, &sent);
+    } while (status == PACKET_INCOMPLETE);
+
+    if (status == PACKET_ERROR) {
+        return -1;
+    }
+
+    return 0;
+}
+
+/**
+ * Synchronously read a single command.
+ *
+ * @param[in] fd a connected file descriptor
+ * @param[in,out] p packet buffer to fill
+ * @param[in] get_packet function to use to read packet
+ * @return 0 on success, -1 on failure
+ */
+static int read_command(int fd, packet * p, packet_reader get_packet)
+{
+    short read_complete = 0;
+    p->bytes = 0;
+
+    while (!read_complete) {
+        switch (get_packet(fd, p)) {
+        case PACKET_ERROR:
+            return -1;
+        case PACKET_INCOMPLETE:
+            read_complete = 0;
+            break;
+        case PACKET_COMPLETE:
+            read_complete = 1;
+            break;
+        };
+    }
+
+    return 0;
+}
+
+/**
  * Top-level sequencing of a single connection.
  *
  * @param[in] fd connected file descriptor
@@ -126,21 +179,40 @@ static void driver(int fd, struct sockaddr_in *addr)
 
     /* for the initial part of the connection, the server-side drives the
        conversation */
-    reply *greetings = delegate_action(ACTION_NOOP_ALL, 0, db.get_next_reply);
-    reply greeting = db.reduce_replies(greetings);
-    db.send_reply(fd, greeting);
+    packet *greetings = delegate_action(ACTION_NOOP_ALL, packet_null(),
+                                        db.get_packet);
+    packet greeting = db.reduce_replies(greetings);
+    if (send_reply(fd, &greeting, db.put_packet) == -1) {
+        syslog(LOG_ERR, "error sending reply: %m");
+        shutdown(fd, SHUT_RDWR);
+        close(fd);
+        return;
+    }
 
     /* loop over input stream */
     while (!db.done()) {
-        command command = db.get_next_command(fd);
-        action *actions = db.actions_from(command);
-        reply final_reply;
+        packet in_command;
+
+        if (read_command(fd, &in_command, db.get_packet) == -1) {
+            syslog(LOG_ERR, "error reading command: %m");
+            shutdown(fd, SHUT_RDWR);
+            close(fd);
+            return;
+        }
+
+        action *actions = db.actions_from(in_command);
+        packet final_reply;
         for (int i = 0; actions[i]; ++i) {
-            reply *replies = delegate_action(actions[i], command,
-                                             db.get_next_reply);
+            packet *replies = delegate_action(actions[i], in_command,
+                                              db.get_packet);
             final_reply = db.reduce_replies(replies);
         }
-        db.send_reply(fd, final_reply);
+        if (send_reply(fd, &final_reply, db.put_packet) == -1) {
+            syslog(LOG_ERR, "error sending reply: %m");
+            shutdown(fd, SHUT_RDWR);
+            close(fd);
+            return;
+        }
     }
 
     /* teardown all the delegate connections */

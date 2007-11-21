@@ -7,9 +7,8 @@
  * Implements the db_driver interface for mysql.
  */
 
-#include "command.h"
 #include "action.h"
-#include "reply.h"
+#include "packet.h"
 
 /**
  * Is the current connection ready to close?
@@ -19,21 +18,26 @@
 short mysql_driver_done(void);
 
 /**
- * Read the next command from a file descriptor.
+ * Read the next packet from a file descriptor. This function is intended
+ * to be called repeatedly until the packet is fully read.
  *
- * @param[in] fd a connected file descriptor from which to read command.
- * @return the next command read from the input.
- */
-command mysql_driver_get_next_command(int fd);
-
-/**
- * Read the next reply from a file descriptor.
- *
- * @param[in] fd a connected file descriptor from which to read reply.
- * @param[in,out] r a reply buffer
+ * @param[in] fd a connected file descriptor from which to read packet.
+ * @param[in,out] p a packet buffer
  * @return the status of the read
  */
-reply_status mysql_driver_get_next_reply(int fd, reply *r);
+packet_status mysql_driver_get_packet(int fd, packet *p);
+
+/**
+ * Write a packet to a file descriptor. This function is intended to be called
+ * repeatedly until the packet is fully written.
+ *
+ * @param[in] fd a connected file descriptor to which to write packet.
+ * @param[in] p a packet buffer
+ * @param[in,out] sent the number of bytes already sent. The caller should set
+ * this to 0 for the first call on a given packet.
+ * @return the status of the write
+ */
+packet_status mysql_driver_put_packet(int fd, packet *p, int *sent);
 
 /**
  * Map a command into a list of actions.
@@ -41,22 +45,14 @@ reply_status mysql_driver_get_next_reply(int fd, reply *r);
  * @param[in] in_command the command from which to determine an action.
  * @return a list of actions
  */
-action* mysql_driver_actions_from(command in_command);
+action* mysql_driver_actions_from(packet in_command);
 
 /**
- * Reduce a set of replies into a single reply.
+ * Reduce a set of replies into a single packet.
  * 
  * @param[in] replies a list of replies from all of the delegates.
- * @return the reduced reply.
+ * @return the reduced packet.
  */
-reply mysql_driver_reduce_replies(reply* replies);
-
-/**
- * Send a reply to a file desciptor.
- *
- * @param[in] fd a connected file descriptor to which to write reply.
- * @param[in] in_reply a reply to send.
- */
-void mysql_driver_send_reply(int fd, reply in_reply);
+packet mysql_driver_reduce_replies(packet* replies);
 
 #endif

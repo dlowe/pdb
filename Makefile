@@ -31,8 +31,8 @@ DOXYGEN := /Applications/Doxygen.app/Contents/Resources/doxygen doxygen.cfg
 		false; \
 	fi
 
-SOURCES := daemon.c concurrency.c db_driver.c mysql_driver.c pdb.c delegate.c
-HEADERS := daemon.h concurrency.h db_driver.h mysql_driver.h command.h delegate.h reply.h
+SOURCES := daemon.c concurrency.c db_driver.c mysql_driver.c packet.c delegate.c pdb.c
+HEADERS := daemon.h concurrency.h db_driver.h mysql_driver.h packet.h delegate.h 
 OBJECTS := $(SOURCES:.c=.o)
 
 .PHONY: all all-no-test clean test

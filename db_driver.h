@@ -9,8 +9,7 @@
  * plug into the proxy framework.
  */
 
-#include "command.h"
-#include "reply.h"
+#include "packet.h"
 #include "action.h"
 
 /**
@@ -18,11 +17,10 @@
  */
 typedef struct {
     short (*done)(void);
-    command (*get_next_command)(int);
-    reply_status (*get_next_reply)(int, reply *);
-    action* (*actions_from)(command);
-    reply (*reduce_replies)(reply[]);
-    void (*send_reply)(int, reply);
+    packet_reader get_packet;
+    packet_writer put_packet;
+    action* (*actions_from)(packet);
+    packet (*reduce_replies)(packet *);
 } db_driver;
 
 /**
