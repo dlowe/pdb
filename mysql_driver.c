@@ -32,7 +32,7 @@ packet_status mysql_driver_get_packet(int fd, packet * p)
     /* reading the header */
     if (p->size < HEADER_SIZE) {
         int len = read(fd, p->bytes + p->size, HEADER_SIZE - p->size);
-        if (len == -1) {
+        if (len <= 0) {
             free(p->bytes);
             p->bytes = 0;
             p->allocated = 0;
@@ -45,7 +45,9 @@ packet_status mysql_driver_get_packet(int fd, packet * p)
 
     /* reading the body */
     long packet_length =
-        p->bytes[0] + (p->bytes[1] << 8) + (p->bytes[2] << 16);
+        ((unsigned char)p->bytes[0]) +
+        ((unsigned char)p->bytes[1] << 8) +
+        ((unsigned char)p->bytes[2] << 16);
 
     syslog(LOG_INFO, "read header for packet type %c of length %ld",
            p->bytes[3], packet_length);
@@ -80,8 +82,6 @@ packet_status mysql_driver_get_packet(int fd, packet * p)
 
 packet_status mysql_driver_put_packet(int fd, packet * p, int *sent)
 {
-    syslog(LOG_ERR, "put");
-
     if (p->bytes == 0) {
         return PACKET_ERROR;
     }

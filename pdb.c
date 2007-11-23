@@ -26,6 +26,27 @@ static void sigterm_handler(int sig)
     dead = 1;
 }
 
+static void sigchld_handler(int sig)
+{
+    /* noop: just break out of the poll() */
+}
+
+static void signal_block(int sig)
+{
+    sigset_t set;
+    sigemptyset(&set);
+    sigaddset(&set, sig);
+    sigprocmask(SIG_BLOCK, &set, 0);
+}
+
+static void signal_unblock(int sig)
+{
+    sigset_t set;
+    sigemptyset(&set);
+    sigaddset(&set, sig);
+    sigprocmask(SIG_UNBLOCK, &set, 0);
+}
+
 int main(int argc, char **argv)
 {
     if (daemon_begin() == -1) {
@@ -70,6 +91,7 @@ int main(int argc, char **argv)
 
     /* set up signal handling */
     signal(SIGTERM, sigterm_handler);
+    signal(SIGCHLD, sigchld_handler);
 
     /* wait for connections; child processes handle each connection */
     dead = 0;
@@ -79,7 +101,12 @@ int main(int argc, char **argv)
         socket_poll.fd = socket_fd;
         socket_poll.events = POLLIN;
         socket_poll.revents = 0;
-        if (poll(&socket_poll, 1, -1) > 0) {
+
+        signal_unblock(SIGCHLD);
+        int r = poll(&socket_poll, 1, -1);
+        signal_block(SIGCHLD);
+
+        if (r > 0) {
             struct sockaddr_in connection_addr;
             socklen_t connection_addr_length;
             int connection_fd =

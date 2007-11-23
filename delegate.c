@@ -118,6 +118,8 @@ static int delegate_io(short event, packet_status(*worker) (int, void *),
 static packet_status delegate_connect_worker(int delegate_index,
                                              void *void_args)
 {
+    /* The connect() has already been issued; this function will only be
+       called when the connection completes (according to poll()) */
     delegates[delegate_index].connected = 1;
     return PACKET_COMPLETE;
 }
@@ -131,6 +133,7 @@ int delegate_connect(void)
             return -1;
         }
 
+        /* set the socket to non-blocking */
         if (fcntl(delegates[i].fd, F_SETFL, O_NONBLOCK) == -1) {
             delegate_disconnect();
             return -1;
@@ -153,6 +156,7 @@ int delegate_connect(void)
         }
     }
 
+    /* Block until all delegates are connected */
     if (!delegate_io(POLLOUT, delegate_connect_worker, 0)) {
         delegate_disconnect();
         return -1;
@@ -217,6 +221,7 @@ static packet *gather_replies(packet_reader get_packet)
         replies[i].bytes = 0;
     }
 
+    /* read from all delegates in parallel */
     gather_replies_worker_args args;
     args.replies = replies;
     args.get_packet = get_packet;
@@ -268,6 +273,7 @@ static int proxy_command(packet * command, packet_writer put_packet)
         sent_list[i] = 0;
     }
 
+    /* write to all delegates in parallel */
     proxy_command_worker_args args;
     args.sent_list = sent_list;
     args.put_packet = put_packet;

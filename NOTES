@@ -46,3 +46,5 @@ pooling is, I believe, usually built *above* the connection, in the client.
 . minimal implementation should NOT be capable of joins between "gdb" and "ldb" tables. Focus on the two primary use cases: 1) access to a single db; 2) parallelized access to all dbs. Other cases (joins which cross gdb/ldb and joins which require serialized access to all segments e.g. cartesian product of two segmented tables) can come later.
 
 . support segment_id as a "virtual column" in segmented tables to bring this metadata up into client applications.
+
+. does bugzilla have a test suite? if so, it might make a great proof of concept -- segment bugs by bugid and run the bugzilla test suite....
