@@ -1,5 +1,5 @@
-#ifndef _DB_DRIVER_H
-#define _DB_DRIVER_H
+#ifndef __DB_DRIVER_H
+#define __DB_DRIVER_H
 
 /**
  * @file db_driver.h
@@ -19,8 +19,8 @@ typedef struct {
     short (*done)(void);
     packet_reader get_packet;
     packet_writer put_packet;
-    action (*actions_from)(packet);
-    packet (*reduce_replies)(packet *);
+    action (*actions_from)(packet *);
+    packet *(*reduce_replies)(packet_set *);
 } db_driver;
 
 /**

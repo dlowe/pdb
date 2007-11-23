@@ -1,5 +1,5 @@
-#ifndef _DELEGATE_H
-#define _DELEGATE_H
+#ifndef __DELEGATE_H
+#define __DELEGATE_H
 
 /**
  * @file delegate.h
@@ -28,15 +28,9 @@ int delegate_connect(void);
  * @return list of replies from all delegates; the caller is responsible for
  * freeing this list
  */
-packet* delegate_action(action what, packet *with, packet_writer put_packet,
-                        packet_reader get_packet);
-
-/**
- * Clean up after an action.
- *
- * @param[in,out] replies pointer to a list of replies (will be freed!)
- */
-void delegate_action_cleanup(packet *replies);
+packet_set* delegate_action(action what, packet *with,
+                            packet_writer put_packet,
+                            packet_reader get_packet);
 
 /**
  * Disconnect from all delegates.

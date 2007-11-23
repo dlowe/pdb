@@ -104,13 +104,12 @@ packet_status mysql_driver_put_packet(int fd, packet * p, int *sent)
     return PACKET_COMPLETE;
 }
 
-action mysql_driver_actions_from(packet in_command)
+action mysql_driver_actions_from(packet * in_command)
 {
     return ACTION_PROXY_ALL;
 }
 
-packet mysql_driver_reduce_replies(packet * replies)
+packet *mysql_driver_reduce_replies(packet_set * replies)
 {
-    /* XXX: obviously incorrect... */
-    return replies[0];
+    return packet_copy(packet_set_get(replies, 0));
 }

@@ -1,5 +1,5 @@
-#ifndef _MYSQL_DRIVER_H
-#define _MYSQL_DRIVER_H
+#ifndef __MYSQL_DRIVER_H
+#define __MYSQL_DRIVER_H
 
 /** @file mysql_driver.h
  * @brief MySQL database driver.
@@ -45,7 +45,7 @@ packet_status mysql_driver_put_packet(int fd, packet *p, int *sent);
  * @param[in] in_command the command from which to determine an action.
  * @return an action
  */
-action mysql_driver_actions_from(packet in_command);
+action mysql_driver_actions_from(packet *in_command);
 
 /**
  * Reduce a set of replies into a single packet.
@@ -53,6 +53,6 @@ action mysql_driver_actions_from(packet in_command);
  * @param[in] replies a list of replies from all of the delegates.
  * @return the reduced packet.
  */
-packet mysql_driver_reduce_replies(packet* replies);
+packet *mysql_driver_reduce_replies(packet_set * replies);
 
 #endif

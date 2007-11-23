@@ -183,7 +183,7 @@ void delegate_disconnect(void)
  * Arguments to gather_replies_worker
  */
 typedef struct {
-    packet *replies;
+    packet_set *replies;
     packet_reader get_packet;
 } gather_replies_worker_args;
 
@@ -200,7 +200,7 @@ static packet_status gather_replies_worker(int delegate_index,
     gather_replies_worker_args *args =
         (gather_replies_worker_args *) void_args;
     return args->get_packet(delegates[delegate_index].fd,
-                            &(args->replies[delegate_index]));
+                            packet_set_get(args->replies, delegate_index));
 }
 
 /**
@@ -210,15 +210,11 @@ static packet_status gather_replies_worker(int delegate_index,
  * @return a list of replies gathered from delegate servers; the caller is
  * responsible for freeing this list!
  */
-static packet *gather_replies(packet_reader get_packet)
+static packet_set *gather_replies(packet_reader get_packet)
 {
-    packet *replies = malloc(sizeof(packet) * delegate_count);
+    packet_set *replies = packet_set_new(delegate_count);
     if (!replies) {
         return 0;
-    }
-
-    for (int i = 0; i < delegate_count; ++i) {
-        replies[i].bytes = 0;
     }
 
     /* read from all delegates in parallel */
@@ -287,8 +283,9 @@ static int proxy_command(packet * command, packet_writer put_packet)
     return 1;
 }
 
-packet *delegate_action(action what, packet * command,
-                        packet_writer put_packet, packet_reader get_packet)
+packet_set *delegate_action(action what, packet * command,
+                            packet_writer put_packet,
+                            packet_reader get_packet)
 {
     switch (what) {
     case ACTION_NONE:

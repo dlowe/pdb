@@ -1,5 +1,5 @@
-#ifndef _ACTION_H
-#define _ACTION_H
+#ifndef __ACTION_H
+#define __ACTION_H
 
 typedef enum {
     ACTION_NONE,
