@@ -75,8 +75,6 @@ void server(int fd, struct sockaddr_in *addr)
     if (delegate_connect() == -1) {
         syslog(LOG_ERR, "error connecting to a delegate: %s",
                strerror(errno));
-        shutdown(fd, SHUT_RDWR);
-        close(fd);
         return;
     }
 
@@ -89,8 +87,8 @@ void server(int fd, struct sockaddr_in *addr)
 
     if (send_reply(fd, greeting, db.put_packet) == -1) {
         syslog(LOG_ERR, "error sending reply: %s", strerror(errno));
-        shutdown(fd, SHUT_RDWR);
-        close(fd);
+        packet_delete(greeting);
+        delegate_disconnect();
         return;
     }
 
@@ -99,11 +97,15 @@ void server(int fd, struct sockaddr_in *addr)
     /* loop over input stream */
     while (!db.done()) {
         packet *in_command = packet_new();
+        if (!in_command) {
+            delegate_disconnect();
+            return;
+        }
 
         if (read_command(fd, in_command, db.get_packet) == -1) {
             syslog(LOG_ERR, "error reading command: %s", strerror(errno));
-            shutdown(fd, SHUT_RDWR);
-            close(fd);
+            packet_delete(in_command);
+            delegate_disconnect();
             return;
         }
 
@@ -116,8 +118,8 @@ void server(int fd, struct sockaddr_in *addr)
 
         if (send_reply(fd, final_reply, db.put_packet) == -1) {
             syslog(LOG_ERR, "error sending reply: %s", strerror(errno));
-            shutdown(fd, SHUT_RDWR);
-            close(fd);
+            packet_delete(final_reply);
+            delegate_disconnect();
             return;
         }
 
@@ -127,7 +129,5 @@ void server(int fd, struct sockaddr_in *addr)
     /* teardown all the delegate connections */
     delegate_disconnect();
 
-    shutdown(fd, SHUT_RDWR);
-    close(fd);
     return;
 }

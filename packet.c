@@ -5,20 +5,18 @@
 /* project includes */
 #include "packet.h"
 
-packet *packet_NULL(void)
-{
-    static packet null;
-    null.bytes = 0;
-    null.allocated = 0;
-    null.size = 0;
-    return &null;
-}
-
 static void packet_initialize(packet * p)
 {
     p->bytes = 0;
     p->allocated = 0;
     p->size = 0;
+}
+
+packet *packet_NULL(void)
+{
+    static packet null;
+    packet_initialize(&null);
+    return &null;
 }
 
 packet *packet_new(void)
