@@ -9,12 +9,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <syslog.h>
 #include <unistd.h>
 
 /* project includes */
 #include "concurrency.h"
 #include "daemon.h"
+#include "log.h"
 #include "server.h"
 
 static short dead;
@@ -82,6 +82,12 @@ int main(int argc, char **argv)
         exit(1);
     }
 
+    if (!log_open("pdb.log", LOG_DEBUG)) {
+        daemon_error("can't open log\n");
+        close(socket_fd);
+        exit(1);
+    }
+
     daemon_done();
 
     concurrency_setup();
@@ -92,6 +98,7 @@ int main(int argc, char **argv)
 
     /* wait for connections; child processes handle each connection */
     dead = 0;
+    lo(LOG_INFO, "pdb: entering main loop");
     while (!dead) {
         struct pollfd socket_poll;
 
@@ -121,8 +128,12 @@ int main(int argc, char **argv)
         }
         concurrency_join_finished();
     }
+    lo(LOG_INFO, "pdb: shutting down (waiting for children)...");
 
     concurrency_teardown();
+
+    lo(LOG_INFO, "pdb: done.");
+    log_close();
 
     close(socket_fd);
     exit(0);

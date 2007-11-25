@@ -1,12 +1,12 @@
 /* system includes */
 #include <sys/types.h>
 #include <sys/uio.h>
-#include <syslog.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <unistd.h>
 
 /* project includes */
+#include "log.h"
 #include "mysql_driver.h"
 
 #define HEADER_SIZE 4
@@ -49,8 +49,8 @@ packet_status mysql_driver_get_packet(int fd, packet * p)
         ((unsigned char)p->bytes[1] << 8) +
         ((unsigned char)p->bytes[2] << 16);
 
-    syslog(LOG_INFO, "read header for packet type %c of length %ld",
-           p->bytes[3], packet_length);
+    lo(LOG_DEBUG, "read header for packet type %c of length %ld",
+       p->bytes[3], packet_length);
 
     if (p->allocated < (packet_length + HEADER_SIZE)) {
         p->allocated = (packet_length + HEADER_SIZE);

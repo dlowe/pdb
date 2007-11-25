@@ -3,12 +3,12 @@
 #include <netinet/in.h>
 #include <errno.h>
 #include <string.h>
-#include <syslog.h>
 #include <unistd.h>
 
 /* project includes */
 #include "db_driver.h"
 #include "delegate.h"
+#include "log.h"
 #include "server.h"
 
 /**
@@ -66,6 +66,8 @@ static int read_command(int fd, packet * p, packet_reader get_packet)
 
 void server(int fd, struct sockaddr_in *addr)
 {
+    lo(LOG_DEBUG, "server: handling connection on fd %d", fd);
+
     db_driver db;
 
     /* XXX: obviously.... */
@@ -73,8 +75,7 @@ void server(int fd, struct sockaddr_in *addr)
 
     /* establish network-level connections to all delegate databases */
     if (delegate_connect() == -1) {
-        syslog(LOG_ERR, "error connecting to a delegate: %s",
-               strerror(errno));
+        lo(LOG_ERROR, "error connecting to a delegate: %s", strerror(errno));
         return;
     }
 
@@ -86,7 +87,7 @@ void server(int fd, struct sockaddr_in *addr)
     packet_set_delete(greetings);
 
     if (send_reply(fd, greeting, db.put_packet) == -1) {
-        syslog(LOG_ERR, "error sending reply: %s", strerror(errno));
+        lo(LOG_ERROR, "error sending reply: %s", strerror(errno));
         packet_delete(greeting);
         delegate_disconnect();
         return;
@@ -103,7 +104,7 @@ void server(int fd, struct sockaddr_in *addr)
         }
 
         if (read_command(fd, in_command, db.get_packet) == -1) {
-            syslog(LOG_ERR, "error reading command: %s", strerror(errno));
+            lo(LOG_ERROR, "error reading command: %s", strerror(errno));
             packet_delete(in_command);
             delegate_disconnect();
             return;
@@ -117,7 +118,7 @@ void server(int fd, struct sockaddr_in *addr)
         packet_set_delete(replies);
 
         if (send_reply(fd, final_reply, db.put_packet) == -1) {
-            syslog(LOG_ERR, "error sending reply: %s", strerror(errno));
+            lo(LOG_ERROR, "error sending reply: %s", strerror(errno));
             packet_delete(final_reply);
             delegate_disconnect();
             return;
@@ -129,5 +130,6 @@ void server(int fd, struct sockaddr_in *addr)
     /* teardown all the delegate connections */
     delegate_disconnect();
 
+    lo(LOG_DEBUG, "server: finished work on fd %d", fd);
     return;
 }

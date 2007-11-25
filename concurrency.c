@@ -10,6 +10,7 @@
 
 /* project includes */
 #include "concurrency.h"
+#include "log.h"
 
 void concurrency_setup(void)
 {
@@ -36,9 +37,11 @@ int concurrency_handle_connection(int connection_fd,
         return -1;
     case 0:
         signal(SIGTERM, SIG_DFL);
+        log_reopen();
         handler(connection_fd, connection_addr);
         shutdown(connection_fd, SHUT_RDWR);
         close(connection_fd);
+        log_close();
         exit(0);
     }
 

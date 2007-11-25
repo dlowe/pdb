@@ -7,6 +7,7 @@
 #   perl (Test, Socket, DBI, DBD::Pg, DBD::mysql)
 #   prove
 #   gcov
+#   libconfuse version 2.5
 
 CC := gcc
 CFLAGS := -std=c99 -Wall -Werror -pedantic -ggdb
@@ -31,8 +32,8 @@ DOXYGEN := /Applications/Doxygen.app/Contents/Resources/doxygen doxygen.cfg
 		false; \
 	fi
 
-SOURCES := daemon.c concurrency.c db_driver.c mysql_driver.c packet.c delegate.c server.c pdb.c
-HEADERS := daemon.h concurrency.h db_driver.h mysql_driver.h packet.h delegate.h server.h
+SOURCES := log.c daemon.c concurrency.c db_driver.c mysql_driver.c packet.c delegate.c server.c pdb.c
+HEADERS := log.h daemon.h concurrency.h db_driver.h mysql_driver.h packet.h delegate.h server.h
 OBJECTS := $(SOURCES:.c=.o)
 
 .PHONY: all all-no-test clean test
@@ -42,7 +43,7 @@ all: all-no-test test
 all-no-test: pdb doxygen
 
 pdb: $(OBJECTS)
-	$(CC) -o $@ $(OBJECTS)
+	$(CC) -o $@ $(OBJECTS) -lconfuse
 	# $(CC) -o $@ $(OBJECTS) -lgcov
 
 test: pdb
@@ -60,6 +61,7 @@ clean:
 	rm -rf doxygen
 	rm -rf *.gcda *.gcno *.gcov
 	rm -rf ktrace.out
+	rm -rf pdb.log
 
 -include dependencies.mk
 
