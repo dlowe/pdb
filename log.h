@@ -8,7 +8,8 @@
 typedef enum {
     LOG_DEBUG,
     LOG_INFO,
-    LOG_ERROR
+    LOG_ERROR,
+    LOG_NONE
 } log_level;
 
 int log_open(char *filename, log_level level);

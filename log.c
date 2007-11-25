@@ -21,34 +21,36 @@ static log_info l;
 
 int log_open(char *filename, log_level level)
 {
-    l.filename = strdup(filename);
-    if (!l.filename) {
-        log_close();
-        return 0;
-    }
-
     l.level = level;
-    l.pid = getpid();
-    l.file = fopen(l.filename, "a");
-    if (!l.file) {
-        log_close();
-        return 0;
-    }
+    if (l.level < LOG_NONE) {
+        l.filename = strdup(filename);
+        if (!l.filename) {
+            log_close();
+            return 0;
+        }
 
+        l.pid = getpid();
+        l.file = fopen(l.filename, "a");
+        if (!l.file) {
+            log_close();
+            return 0;
+        }
+    }
     return 1;
 }
 
 int log_reopen(void)
 {
-    l.pid = getpid();
+    if (l.level < LOG_NONE) {
+        l.pid = getpid();
 
-    fclose(l.file);
-    l.file = fopen(l.filename, "a");
-    if (!l.file) {
-        log_close();
-        return 0;
+        fclose(l.file);
+        l.file = fopen(l.filename, "a");
+        if (!l.file) {
+            log_close();
+            return 0;
+        }
     }
-
     return 1;
 }
 
