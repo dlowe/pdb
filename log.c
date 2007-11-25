@@ -59,6 +59,9 @@ void lo(log_level level, char *format, ...)
     if (level < l.level) {
         return;
     }
+    if (level >= LOG_NONE) {
+        return;
+    }
 
     va_list args;
     va_start(args, format);
