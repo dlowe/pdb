@@ -25,7 +25,8 @@ typedef struct {
 typedef enum {
     PACKET_ERROR,
     PACKET_INCOMPLETE,
-    PACKET_COMPLETE
+    PACKET_COMPLETE,
+    PACKET_EOF
 } packet_status;
 
 /**

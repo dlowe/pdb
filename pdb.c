@@ -62,6 +62,7 @@ int main(int argc, char **argv)
     if (setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, (char *)&one,
                    sizeof(one)) == -1) {
         daemon_error("can't set reuseaddr: %s\n", strerror(errno));
+        close(socket_fd);
         exit(1);
     }
 
@@ -122,7 +123,9 @@ int main(int argc, char **argv)
                                                           &connection_addr,
                                                           server);
                 if (child == -1) {
-                    exit(1);
+                    lo(LOG_ERROR, "pdb: unable to handle connection: %s",
+                       strerror(errno));
+                    dead = 1;
                 }
             }
         }

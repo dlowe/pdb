@@ -50,6 +50,7 @@ static int read_command(int fd, packet * p, packet_reader get_packet)
 
     while (!read_complete) {
         switch (get_packet(fd, p)) {
+        case PACKET_EOF:
         case PACKET_ERROR:
             return -1;
         case PACKET_INCOMPLETE:
@@ -66,8 +67,6 @@ static int read_command(int fd, packet * p, packet_reader get_packet)
 
 void server(int fd, struct sockaddr_in *addr)
 {
-    lo(LOG_DEBUG, "server: handling connection on fd %d", fd);
-
     db_driver db;
 
     /* XXX: obviously.... */
@@ -75,7 +74,8 @@ void server(int fd, struct sockaddr_in *addr)
 
     /* establish network-level connections to all delegate databases */
     if (delegate_connect() == -1) {
-        lo(LOG_ERROR, "error connecting to a delegate: %s", strerror(errno));
+        lo(LOG_ERROR, "server: error connecting to a delegate: %s",
+           strerror(errno));
         return;
     }
 
@@ -83,11 +83,16 @@ void server(int fd, struct sockaddr_in *addr)
        conversation */
     packet_set *greetings = delegate_action(ACTION_NOOP_ALL, packet_NULL(),
                                             db.put_packet, db.get_packet);
+    if (!greetings) {
+        lo(LOG_ERROR, "server: error delegating command");
+        delegate_disconnect();
+        return;
+    }
     packet *greeting = db.reduce_replies(greetings);
     packet_set_delete(greetings);
 
     if (send_reply(fd, greeting, db.put_packet) == -1) {
-        lo(LOG_ERROR, "error sending reply: %s", strerror(errno));
+        lo(LOG_ERROR, "server: error sending reply: %s", strerror(errno));
         packet_delete(greeting);
         delegate_disconnect();
         return;
@@ -104,7 +109,8 @@ void server(int fd, struct sockaddr_in *addr)
         }
 
         if (read_command(fd, in_command, db.get_packet) == -1) {
-            lo(LOG_ERROR, "error reading command: %s", strerror(errno));
+            lo(LOG_ERROR, "server: error reading command: %s",
+               strerror(errno));
             packet_delete(in_command);
             delegate_disconnect();
             return;
@@ -114,11 +120,16 @@ void server(int fd, struct sockaddr_in *addr)
                                               in_command, db.put_packet,
                                               db.get_packet);
         packet_delete(in_command);
+        if (!replies) {
+            lo(LOG_ERROR, "server: error delegating command");
+            delegate_disconnect();
+            return;
+        }
         packet *final_reply = db.reduce_replies(replies);
         packet_set_delete(replies);
 
         if (send_reply(fd, final_reply, db.put_packet) == -1) {
-            lo(LOG_ERROR, "error sending reply: %s", strerror(errno));
+            lo(LOG_ERROR, "server: error sending reply: %s", strerror(errno));
             packet_delete(final_reply);
             delegate_disconnect();
             return;

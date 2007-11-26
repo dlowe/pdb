@@ -12,6 +12,7 @@
 /* project includes */
 #include "action.h"
 #include "delegate.h"
+#include "log.h"
 #include "packet.h"
 
 typedef struct {
@@ -87,6 +88,7 @@ static int delegate_io(short event, packet_status(*worker) (int, void *),
                 if (pending_poll[info[i].poll_index].revents & event) {
                     switch (worker(i, worker_args)) {
                     case PACKET_ERROR:
+                    case PACKET_EOF:
                         free(pending_poll);
                         free(info);
                         return 0;
@@ -121,6 +123,8 @@ static packet_status delegate_connect_worker(int delegate_index,
     /* The connect() has already been issued; this function will only be
        called when the connection completes (according to poll()) */
     delegates[delegate_index].connected = 1;
+    lo(LOG_DEBUG, "delegate_connect_worker: connection to %s:%d completed",
+       delegates[delegate_index].ip, delegates[delegate_index].port);
     return PACKET_COMPLETE;
 }
 

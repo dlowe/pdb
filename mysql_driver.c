@@ -37,9 +37,13 @@ packet_status mysql_driver_get_packet(int fd, packet * p)
             p->bytes = 0;
             p->allocated = 0;
             p->size = 0;
-            return PACKET_ERROR;
+            return (len == 0) ? PACKET_EOF : PACKET_ERROR;
         }
         p->size += len;
+        if (p->size == HEADER_SIZE) {
+            lo(LOG_DEBUG, "mysql_driver_get_packet: read header for packet "
+               "type %c", p->bytes[3]);
+        }
         return PACKET_INCOMPLETE;
     }
 
@@ -48,9 +52,6 @@ packet_status mysql_driver_get_packet(int fd, packet * p)
         ((unsigned char)p->bytes[0]) +
         ((unsigned char)p->bytes[1] << 8) +
         ((unsigned char)p->bytes[2] << 16);
-
-    lo(LOG_DEBUG, "read header for packet type %c of length %ld",
-       p->bytes[3], packet_length);
 
     if (p->allocated < (packet_length + HEADER_SIZE)) {
         p->allocated = (packet_length + HEADER_SIZE);
@@ -69,14 +70,18 @@ packet_status mysql_driver_get_packet(int fd, packet * p)
         p->bytes = 0;
         p->allocated = 0;
         p->size = 0;
-        return PACKET_ERROR;
+        return (len == 0) ? PACKET_EOF : PACKET_ERROR;
     }
 
     p->size += len;
 
     if (p->size < (packet_length + HEADER_SIZE)) {
+        lo(LOG_DEBUG, "mysql_driver_get_packet: read %ld of %ld bytes",
+           p->size, packet_length + HEADER_SIZE);
         return PACKET_INCOMPLETE;
     }
+    lo(LOG_DEBUG, "mysql_driver_get_packet: completed packet of length %ld",
+       packet_length + HEADER_SIZE);
     return PACKET_COMPLETE;
 }
 
