@@ -11,10 +11,15 @@ sub exists {
     return -x $pdb;
 }
 
-sub startup {
-    my $output = `ktrace -i $pdb 2>&1`;
+sub startup_with_args {
+    my $args = shift;
+    my $output = `ktrace -i $pdb $args 2>&1`;
     die $output if $output ne '';
     return pid();
+}
+
+sub startup {
+    startup_with_args("-c test/pdb.cfg");
 }
 
 sub pid {
@@ -25,11 +30,13 @@ sub pid {
 
 sub shutdown {
     my $pid = pid();
-    my $output = `kill $pid`;
-    die $output if $output ne '';
-    select(undef, undef, undef, 0.250);
-    $pid = pid();
-    die "pdb didn't die: $pid" if $pid ne '';
+    if ($pid) {
+        my $output = `kill $pid`;
+        die $output if $output ne '';
+        select(undef, undef, undef, 0.250);
+        $pid = pid();
+        die "pdb didn't die: $pid" if $pid ne '';
+    }
 }
 
 1;

@@ -10,7 +10,6 @@ BEGIN { plan tests => 5 }
 
 require('test/PDBTest.pm');
 
-my $pdb = "./pdb";
 ok(PDBTest::exists(), 1, "can't find pdb") or die;
 
 my $pid;

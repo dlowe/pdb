@@ -54,4 +54,12 @@ void lo(log_level level, char *format, ...);
  */
 void log_close(void);
 
+/**
+ * Convert from a string to a log level.
+ *
+ * @param[in] string string description of the log level
+ * @return a log_level
+ */
+log_level log_level_from_string(const char *string);
+
 #endif

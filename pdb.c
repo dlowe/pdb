@@ -11,11 +11,19 @@
 #include <string.h>
 #include <unistd.h>
 
+/* 3rd party includes */
+#include "confuse.h"
+
 /* project includes */
 #include "concurrency.h"
 #include "daemon.h"
 #include "log.h"
 #include "server.h"
+
+static void usage(void)
+{
+    fprintf(stderr, "usage: pdb -c config_file\n");
+}
 
 static short dead;
 static void sigterm_handler(int sig)
@@ -44,8 +52,63 @@ static void signal_unblock(int sig)
     sigprocmask(SIG_UNBLOCK, &set, 0);
 }
 
+static int log_level_parser(cfg_t * cfg, cfg_opt_t * opt, const char *value,
+                            void *result)
+{
+    int *log_level = malloc(sizeof(int));
+    if (!log_level) {
+        return -1;
+    }
+    *log_level = log_level_from_string(value);
+    result = (void *)log_level;
+    return 0;
+}
+
 int main(int argc, char **argv)
 {
+    char *configuration_filename = 0;
+
+    char c;
+    /* Flawfinder: ignore getopt */
+    while ((c = getopt(argc, argv, "c:h")) != EOF) {
+        switch (c) {
+        case 'c':
+            configuration_filename = optarg;
+            break;
+        case 'h':
+        default:
+            usage();
+            exit(0);
+            break;
+        };
+    }
+
+    if (!configuration_filename) {
+        usage();
+        exit(1);
+    }
+
+    cfg_opt_t options[] = {
+        CFG_STR("log_file", "", 0),
+        CFG_INT_CB("log_level", LOG_NONE, 0, log_level_parser),
+        CFG_END()
+    };
+    cfg_t *configuration = cfg_init(options, CFGF_NONE);
+    if (!configuration) {
+        fprintf(stderr, "error initializing configuration system");
+        exit(1);
+    }
+
+    switch (cfg_parse(configuration, configuration_filename)) {
+    case CFG_SUCCESS:
+        break;
+    case CFG_FILE_ERROR:
+    case CFG_PARSE_ERROR:
+        fprintf(stderr, "error reading configuration file [%s]",
+                configuration_filename);
+        exit(1);
+    };
+
     if (daemon_begin() == -1) {
         fprintf(stderr, "error in daemon_begin(): %s\n", strerror(errno));
         exit(1);

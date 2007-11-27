@@ -86,3 +86,17 @@ void log_close(void)
         l.file = 0;
     }
 }
+
+log_level log_level_from_string(const char *string)
+{
+    if (strcmp(string, "error") == 0) {
+        return LOG_ERROR;
+    }
+    if (strcmp(string, "info") == 0) {
+        return LOG_INFO;
+    }
+    if (strcmp(string, "debug") == 0) {
+        return LOG_DEBUG;
+    }
+    return LOG_NONE;
+}
