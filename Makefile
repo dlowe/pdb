@@ -33,7 +33,7 @@ DOXYGEN := /Applications/Doxygen.app/Contents/Resources/doxygen doxygen.cfg
 	fi
 
 SOURCES := log.c daemon.c concurrency.c db_driver.c mysql_driver.c packet.c delegate.c server.c pdb.c
-HEADERS := log.h daemon.h concurrency.h db_driver.h mysql_driver.h packet.h delegate.h server.h
+HEADERS := log.h daemon.h concurrency.h db_driver.h mysql_driver.h packet.h delegate.h server.h cfg.h
 OBJECTS := $(SOURCES:.c=.o)
 
 .PHONY: all all-no-test clean test

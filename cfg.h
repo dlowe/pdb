@@ -1,6 +1,13 @@
 #ifndef __CFG_H
 #define __CFG_H
 
+/** @file cfg.h
+ * @brief macros for configuration management
+ *
+ * A bunch of configuration-related macros. Not pretty, I know. Currently
+ * must only be included from pdb.c -- anything else will probably break.
+ */
+
 /* 3rd party includes */
 #include "confuse.h"
 
