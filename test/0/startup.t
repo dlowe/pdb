@@ -14,18 +14,14 @@ require('test/PDBTest.pm');
 my $pid;
 eval {
     $pid = PDBTest::startup_with_args("");
+
+    PDBTest::shutdown();
 };
 ok($@, qr/usage/, "pdb booted with no arguments") or die;
 
 eval {
-    PDBTest::shutdown();
-};
-
-eval {
     $pid = PDBTest::startup_with_args("-c test/nonexistent.cfg");
+
+    PDBTest::shutdown();
 };
 ok($@, qr/error/, "pdb booted against nonexistent configuration file") or die;
-
-eval {
-    PDBTest::shutdown();
-};

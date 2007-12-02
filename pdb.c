@@ -15,6 +15,7 @@
 #include "confuse.h"
 
 /* project includes */
+#include "cfg.h"
 #include "concurrency.h"
 #include "daemon.h"
 #include "log.h"
@@ -52,18 +53,6 @@ static void signal_unblock(int sig)
     sigprocmask(SIG_UNBLOCK, &set, 0);
 }
 
-static int log_level_parser(cfg_t * cfg, cfg_opt_t * opt, const char *value,
-                            void *result)
-{
-    int *log_level = malloc(sizeof(int));
-    if (!log_level) {
-        return -1;
-    }
-    *log_level = log_level_from_string(value);
-    result = (void *)log_level;
-    return 0;
-}
-
 int main(int argc, char **argv)
 {
     char *configuration_filename = 0;
@@ -88,12 +77,7 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-    cfg_opt_t options[] = {
-        CFG_STR("log_file", "", 0),
-        CFG_INT_CB("log_level", LOG_NONE, 0, log_level_parser),
-        CFG_END()
-    };
-    cfg_t *configuration = cfg_init(options, CFGF_NONE);
+    configuration = cfg_init(options, CFGF_NONE);
     if (!configuration) {
         fprintf(stderr, "error initializing configuration system");
         exit(1);
@@ -131,7 +115,7 @@ int main(int argc, char **argv)
 
     struct sockaddr_in bind_addr;
     bind_addr.sin_family = AF_INET;
-    bind_addr.sin_port = 5032;
+    bind_addr.sin_port = listen_port();
     bind_addr.sin_addr.s_addr = INADDR_ANY;
     if (bind(socket_fd, (struct sockaddr *)&bind_addr,
              sizeof(bind_addr)) == -1) {
@@ -140,17 +124,18 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-    if (listen(socket_fd, 0) == -1) {
+    if (listen(socket_fd, listen_qdepth()) == -1) {
         daemon_error("can't listen to socket: %s\n", strerror(errno));
         close(socket_fd);
         exit(1);
     }
 
-    if (!log_open("pdb.log", LOG_DEBUG)) {
+    if (!log_open(log_file(), log_level())) {
         daemon_error("can't open log\n");
         close(socket_fd);
         exit(1);
     }
+    lo(LOG_DEBUG, "pdb: booting...");
 
     daemon_done();
 

@@ -4,7 +4,7 @@
 #   gcc
 #   gnuindent
 #   doxygen
-#   perl (Test, Socket, DBI, DBD::Pg, DBD::mysql)
+#   perl (Test, Socket, DBI, DBD::Pg, DBD::mysql, File::Temp)
 #   prove
 #   gcov
 #   libconfuse version 2.5
@@ -47,6 +47,7 @@ pdb: $(OBJECTS)
 	# $(CC) -o $@ $(OBJECTS) -lgcov
 
 test: pdb
+	rm -f test/ktrace.out
 	prove -r test
 	# gcov $(SOURCES)
 
@@ -60,8 +61,8 @@ clean:
 	rm -f pdb
 	rm -rf doxygen
 	rm -rf *.gcda *.gcno *.gcov
-	rm -rf ktrace.out
-	rm -rf pdb.log
+	rm -rf ktrace.out test/ktrace.out
+	rm -rf pdb.log test/pdb.log
 
 -include dependencies.mk
 
