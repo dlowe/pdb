@@ -22,7 +22,6 @@ static log_info l;
 int log_open(char *filename, log_level level)
 {
     l.level = level;
-    fprintf(stderr, "log level = %d\n", level);
     if (l.level < LOG_NONE) {
         l.filename = strdup(filename);
         if (!l.filename) {
