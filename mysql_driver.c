@@ -26,22 +26,21 @@ enum enum_server_command {
 };
 
 static short done;
-static short expect_commands;
-static short expect_replies;
+static short waiting_for_client_auth;
 
-enum established_state {
-    EST_WAITING_FOR_GREETING,
-    EST_WAITING_FOR_CLIENT_AUTH,
-    EST_WAITING_FOR_RESPONSE,
-    EST_ESTABLISHED
-} established;
+enum expect_reply_state {
+    REP_NONE,
+    REP_GREETING,
+    REP_SIMPLE,
+    REP_TABLE_FIELDS,
+    REP_TABLE_ROWS
+} expect_replies;
 
 void mysql_driver_initialize(void)
 {
     done = 0;
-    expect_replies = 1;
-    expect_commands = 0;
-    established = EST_WAITING_FOR_GREETING;
+    expect_replies = REP_GREETING;
+    waiting_for_client_auth = 0;
 }
 
 short mysql_driver_done(void)
@@ -51,12 +50,12 @@ short mysql_driver_done(void)
 
 short mysql_driver_expect_replies(void)
 {
-    return expect_replies;
+    return (!done) && (expect_replies != REP_NONE);
 }
 
 short mysql_driver_expect_commands(void)
 {
-    return expect_commands;
+    return (!done) && (expect_replies == REP_NONE);
 }
 
 packet_status mysql_driver_get_packet(int fd, packet * p)
@@ -156,10 +155,9 @@ packet_status mysql_driver_put_packet(int fd, packet * p, int *sent)
 
 action mysql_driver_actions_from(packet * in_command)
 {
-    expect_replies = 1;
-    expect_commands = 0;
-    if (established == EST_WAITING_FOR_CLIENT_AUTH) {
-        established = EST_WAITING_FOR_RESPONSE;
+    expect_replies = REP_SIMPLE;
+    if (waiting_for_client_auth) {
+        waiting_for_client_auth = 0;
         return ACTION_PROXY_ALL;
     }
 
@@ -170,8 +168,12 @@ action mysql_driver_actions_from(packet * in_command)
 
     /* if we see a QUIT command, don't expect the delegates to respond */
     if (command == COM_QUIT) {
-        expect_replies = 0;
+        expect_replies = REP_NONE;
         done = 1;
+    }
+    if (command == COM_QUERY) {
+        lo(LOG_DEBUG, "mysql_driver_actions_from: query: '%*s'",
+           in_command->size - 5, in_command->bytes + 5);
     }
 
     return ACTION_PROXY_ALL;
@@ -179,12 +181,42 @@ action mysql_driver_actions_from(packet * in_command)
 
 packet *mysql_driver_reduce_replies(packet_set * replies)
 {
-    if (established == EST_WAITING_FOR_GREETING) {
-        established = EST_WAITING_FOR_CLIENT_AUTH;
-    } else if (established == EST_WAITING_FOR_RESPONSE) {
-        established = EST_ESTABLISHED;
-    }
-    expect_replies = 0;
-    expect_commands = 1;
+    packet *p = packet_copy(packet_set_get(replies, 0));
+
+    switch (expect_replies) {
+    case REP_GREETING:
+        waiting_for_client_auth = 1;
+        expect_replies = REP_NONE;
+        break;
+    case REP_SIMPLE:
+        lo(LOG_DEBUG, "mysql_driver_reduce_replies: packet of "
+           "size %d says to expect %d fields", p->size, p->bytes[4]);
+        if (p->bytes[4] == 0) {
+            expect_replies = REP_NONE;
+        } else {
+            expect_replies = REP_TABLE_FIELDS;
+        }
+        break;
+    case REP_TABLE_FIELDS:
+        lo(LOG_DEBUG, "mysql_driver_reduce_replies: field");
+        if ((unsigned char)(p->bytes[4]) == 0xfe) {
+            if (p->size > 5) {
+                expect_replies = REP_NONE;
+            } else {
+                expect_replies = REP_TABLE_ROWS;
+            }
+        }
+        break;
+    case REP_TABLE_ROWS:
+        lo(LOG_DEBUG, "mysql_driver_reduce_replies: row");
+        if ((unsigned char)(p->bytes[4]) == 0xfe) {
+            expect_replies = REP_NONE;
+        }
+        break;
+    case REP_NONE:
+        lo(LOG_ERROR, "mysql_driver_reduce_replies: I wasn't expecting"
+           "any replies!");
+        return 0;
+    };
     return packet_copy(packet_set_get(replies, 0));
 }
