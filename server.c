@@ -79,6 +79,8 @@ void server(int fd, struct sockaddr_in *addr)
         return;
     }
 
+    lo(LOG_DEBUG, "server: connecting to delegates...");
+
     /* for the initial part of the connection, the server-side drives the
        conversation */
     packet_set *greetings = delegate_action(ACTION_NOOP_ALL, packet_NULL(),
@@ -100,13 +102,18 @@ void server(int fd, struct sockaddr_in *addr)
 
     packet_delete(greeting);
 
+    lo(LOG_DEBUG, "server: done connecting to delegates.");
+
     /* loop over input stream */
     while (!db.done()) {
         packet *in_command = packet_new();
         if (!in_command) {
+            lo(LOG_ERROR, "server: out of memory!");
             delegate_disconnect();
             return;
         }
+
+        lo(LOG_DEBUG, "server: waiting for next command...");
 
         if (read_command(fd, in_command, db.get_packet) == -1) {
             lo(LOG_ERROR, "server: error reading command: %s",
@@ -115,6 +122,8 @@ void server(int fd, struct sockaddr_in *addr)
             delegate_disconnect();
             return;
         }
+
+        lo(LOG_DEBUG, "server: got command, delegating...");
 
         packet_set *replies = delegate_action(db.actions_from(in_command),
                                               in_command, db.put_packet,
@@ -128,12 +137,16 @@ void server(int fd, struct sockaddr_in *addr)
         packet *final_reply = db.reduce_replies(replies);
         packet_set_delete(replies);
 
+        lo(LOG_DEBUG, "server: returning reply...");
+
         if (send_reply(fd, final_reply, db.put_packet) == -1) {
             lo(LOG_ERROR, "server: error sending reply: %s", strerror(errno));
             packet_delete(final_reply);
             delegate_disconnect();
             return;
         }
+
+        lo(LOG_DEBUG, "server: done with this conversation.");
 
         packet_delete(final_reply);
     }
