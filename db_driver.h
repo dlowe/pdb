@@ -16,7 +16,9 @@
  * db_driver is the interface for all database-specific functions.
  */
 typedef struct {
+    void (*initialize)(void);
     short (*done)(void);
+    short (*expect_commands)(void);
     short (*expect_replies)(void);
     packet_reader get_packet;
     packet_writer put_packet;

@@ -10,12 +10,16 @@
 #include "action.h"
 #include "packet.h"
 
+void mysql_driver_initialize(void);
+
 /**
  * Is the current connection ready to close?
  *
  * @return 1 if it is time to shut down this connection; 0 otherwise.
  */
 short mysql_driver_done(void);
+
+short mysql_driver_expect_commands(void);
 
 short mysql_driver_expect_replies(void);
 

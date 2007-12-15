@@ -79,67 +79,46 @@ void server(int fd, struct sockaddr_in *addr)
         return;
     }
 
-    lo(LOG_DEBUG, "server: connecting to delegates...");
-
-    /* for the initial part of the connection, the server-side drives the
-       conversation */
-    packet_set *greetings = delegate_get(db.get_packet);
-    if (!greetings) {
-        lo(LOG_ERROR, "server: error delegating command");
-        delegate_disconnect();
-        return;
-    }
-    packet *greeting = db.reduce_replies(greetings);
-    packet_set_delete(greetings);
-
-    if (send_reply(fd, greeting, db.put_packet) == -1) {
-        lo(LOG_ERROR, "server: error sending reply: %s", strerror(errno));
-        packet_delete(greeting);
-        delegate_disconnect();
-        return;
-    }
-
-    packet_delete(greeting);
-
-    lo(LOG_DEBUG, "server: done connecting to delegates.");
-
-    /* loop over input stream */
+    /* loop over conversation between client and delegates */
+    db.initialize();
     while (!db.done()) {
-        packet *in_command = packet_new();
-        if (!in_command) {
-            lo(LOG_ERROR, "server: out of memory!");
-            delegate_disconnect();
-            return;
-        }
+        while (db.expect_commands()) {
+            packet *in_command = packet_new();
+            if (!in_command) {
+                lo(LOG_ERROR, "server: out of memory!");
+                delegate_disconnect();
+                return;
+            }
 
-        lo(LOG_DEBUG, "server: waiting for next command...");
+            lo(LOG_DEBUG, "server: waiting for next command...");
 
-        if (read_command(fd, in_command, db.get_packet) == -1) {
-            lo(LOG_ERROR, "server: error reading command: %s",
-               strerror(errno));
+            if (read_command(fd, in_command, db.get_packet) == -1) {
+                lo(LOG_ERROR, "server: error reading command: %s",
+                   strerror(errno));
+                packet_delete(in_command);
+                delegate_disconnect();
+                return;
+            }
+
+            lo(LOG_DEBUG, "server: delegating command...");
+
+            if (!delegate_put(db.actions_from(in_command), in_command,
+                              db.put_packet)) {
+                lo(LOG_ERROR, "server: error delegating command");
+                packet_delete(in_command);
+                delegate_disconnect();
+                return;
+            }
+
             packet_delete(in_command);
-            delegate_disconnect();
-            return;
         }
-
-        lo(LOG_DEBUG, "server: delegating command...");
-
-        if (!delegate_put(db.actions_from(in_command), in_command,
-                          db.put_packet)) {
-            lo(LOG_ERROR, "server: error delegating command");
-            packet_delete(in_command);
-            delegate_disconnect();
-            return;
-        }
-
-        packet_delete(in_command);
 
         while (db.expect_replies()) {
             lo(LOG_DEBUG, "server: waiting for reply...");
 
             packet_set *replies = delegate_get(db.get_packet);
             if (!replies) {
-                lo(LOG_ERROR, "server: error delegating command");
+                lo(LOG_ERROR, "server: error getting delegate replies");
                 delegate_disconnect();
                 return;
             }
