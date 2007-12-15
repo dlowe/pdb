@@ -5,6 +5,12 @@
 /* project includes */
 #include "packet.h"
 
+/**
+ * Initialize a packet to "empty". Will leak memory if you pass a packet with
+ * allocated bytes.
+ *
+ * @param p the packet to initialize.
+ */
 static void packet_initialize(packet * p)
 {
     p->bytes = 0;
@@ -39,6 +45,11 @@ packet *packet_copy(packet * p)
     return copy;
 }
 
+/**
+ * Free the memory associated with a given packet.
+ *
+ * @param p The packet to clean up.
+ */
 static void packet_free_bytes(packet * p)
 {
     if (p->bytes) {
