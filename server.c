@@ -71,6 +71,7 @@ void server(int fd, struct sockaddr_in *addr)
 
     /* XXX: obviously.... */
     db = db_driver_load("mysql");
+    db.initialize();
 
     /* establish network-level connections to all delegate databases */
     if (delegate_connect() == -1) {
@@ -80,8 +81,8 @@ void server(int fd, struct sockaddr_in *addr)
     }
 
     /* loop over conversation between client and delegates */
-    db.initialize();
     while (!db.done()) {
+        /* read commands and delegate them */
         while (db.expect_commands()) {
             packet *in_command = packet_new();
             if (!in_command) {
@@ -91,7 +92,6 @@ void server(int fd, struct sockaddr_in *addr)
             }
 
             lo(LOG_DEBUG, "server: waiting for next command...");
-
             if (read_command(fd, in_command, db.get_packet) == -1) {
                 lo(LOG_ERROR, "server: error reading command: %s",
                    strerror(errno));
@@ -99,11 +99,10 @@ void server(int fd, struct sockaddr_in *addr)
                 delegate_disconnect();
                 return;
             }
+            db.got_command(in_command);
 
             lo(LOG_DEBUG, "server: delegating command...");
-
-            if (!delegate_put(db.actions_from(in_command), in_command,
-                              db.put_packet)) {
+            if (!delegate_put(db.put_packet, in_command)) {
                 lo(LOG_ERROR, "server: error delegating command");
                 packet_delete(in_command);
                 delegate_disconnect();
@@ -113,6 +112,7 @@ void server(int fd, struct sockaddr_in *addr)
             packet_delete(in_command);
         }
 
+        /* read replies from delegates, reduce and return them */
         while (db.expect_replies()) {
             lo(LOG_DEBUG, "server: waiting for reply...");
 

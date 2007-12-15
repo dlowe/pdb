@@ -12,7 +12,7 @@ db_driver db_driver_load(char *db_driver_name)
     db.expect_replies = mysql_driver_expect_replies;
     db.get_packet = mysql_driver_get_packet;
     db.put_packet = mysql_driver_put_packet;
-    db.actions_from = mysql_driver_actions_from;
+    db.got_command = mysql_driver_got_command;
     db.reduce_replies = mysql_driver_reduce_replies;
 
     return db;

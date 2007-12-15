@@ -7,7 +7,6 @@
  * Implements the db_driver interface for mysql.
  */
 
-#include "action.h"
 #include "packet.h"
 
 void mysql_driver_initialize(void);
@@ -56,12 +55,11 @@ packet_status mysql_driver_get_packet(int fd, packet *p);
 packet_status mysql_driver_put_packet(int fd, packet *p, int *sent);
 
 /**
- * Map a command into a list of actions.
+ * Note the receipt of a command.
  *
- * @param[in] in_command the command from which to determine an action.
- * @return an action
+ * @param[in] in_command the command received.
  */
-action mysql_driver_actions_from(packet *in_command);
+void mysql_driver_got_command(packet *in_command);
 
 /**
  * Reduce a set of replies into a single packet.

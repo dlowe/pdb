@@ -153,17 +153,17 @@ packet_status mysql_driver_put_packet(int fd, packet * p, int *sent)
     return PACKET_COMPLETE;
 }
 
-action mysql_driver_actions_from(packet * in_command)
+void mysql_driver_got_command(packet * in_command)
 {
     expect_replies = REP_SIMPLE;
     if (waiting_for_client_auth) {
         waiting_for_client_auth = 0;
-        return ACTION_PROXY_ALL;
+        return;
     }
 
     enum enum_server_command command =
         (enum enum_server_command)(unsigned char)in_command->bytes[4];
-    lo(LOG_DEBUG, "mysql_driver_actions_from: I've got a %u packet...",
+    lo(LOG_DEBUG, "mysql_driver_got_command: I've got a %u packet...",
        command);
 
     /* if we see a QUIT command, don't expect the delegates to respond */
@@ -172,11 +172,11 @@ action mysql_driver_actions_from(packet * in_command)
         done = 1;
     }
     if (command == COM_QUERY) {
-        lo(LOG_DEBUG, "mysql_driver_actions_from: query: '%*s'",
+        lo(LOG_DEBUG, "mysql_driver_got_command: query: '%*s'",
            in_command->size - 5, in_command->bytes + 5);
     }
 
-    return ACTION_PROXY_ALL;
+    return;
 }
 
 packet *mysql_driver_reduce_replies(packet_set * replies)

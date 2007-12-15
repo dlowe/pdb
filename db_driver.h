@@ -10,7 +10,6 @@
  */
 
 #include "packet.h"
-#include "action.h"
 
 /**
  * db_driver is the interface for all database-specific functions.
@@ -22,7 +21,7 @@ typedef struct {
     short (*expect_replies)(void);
     packet_reader get_packet;
     packet_writer put_packet;
-    action (*actions_from)(packet *);
+    void (*got_command)(packet *);
     packet *(*reduce_replies)(packet_set *);
 } db_driver;
 

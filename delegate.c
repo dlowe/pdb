@@ -10,7 +10,6 @@
 #include <unistd.h>
 
 /* project includes */
-#include "action.h"
 #include "delegate.h"
 #include "log.h"
 #include "packet.h"
@@ -248,7 +247,7 @@ static packet_status proxy_command_worker(int delegate_index, void *void_args)
                             &(args->sent_list[delegate_index]));
 }
 
-int delegate_put(action a, packet * command, packet_writer put_packet)
+int delegate_put(packet_writer put_packet, packet * command)
 {
     int *sent_list = malloc(sizeof(int) * delegate_count);
     if (!sent_list) {

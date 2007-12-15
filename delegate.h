@@ -9,7 +9,6 @@
  * connections.
  */
 
-#include "action.h"
 #include "packet.h"
 
 /**
@@ -20,7 +19,7 @@
 int delegate_connect(void);
 
 /**
- * Parallel reading of a set of packets from a set of delegate servers.
+ * Parallel read of a set of packets from a set of delegate servers.
  *
  * @param[in] get_packet function for reading a single packet
  * @return a list of replies gathered from delegate servers; the caller is
@@ -29,14 +28,13 @@ int delegate_connect(void);
 packet_set* delegate_get(packet_reader get_packet);
 
 /**
- * Parallel writing of a packet to a set of delegate servers.
+ * Parallel write of a packet to a set of delegate servers.
  *
- * @param[in] a action to perform with this packet
- * @param[in] command the packet to write to all delegates.
  * @param[in] put_packet function for writing a single packet.
+ * @param[in] command the packet to write to all delegates.
  * @return 1 on success, 0 on failure
  */
-int delegate_put(action a, packet *command, packet_writer put_packet);
+int delegate_put(packet_writer put_packet, packet *command);
 
 /**
  * Disconnect from all delegates.
