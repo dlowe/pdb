@@ -1,7 +1,8 @@
 #ifndef __CFG_H
 #define __CFG_H
 
-/** @file cfg.h
+/**
+ * @file cfg.h
  * @brief macros for configuration management
  *
  * A bunch of configuration-related macros. Not pretty, I know. Currently

@@ -2,6 +2,14 @@
 #define __PACKET_H
 
 /**
+ * @file packet.h
+ * @brief functions for working with logical communication packets
+ *
+ * A 'packet' in pdb is the unit of communication. These functions are for
+ * dealing with packets in the abstract.
+ */
+
+/**
  * A single "packet" of communication.
  */
 typedef struct {

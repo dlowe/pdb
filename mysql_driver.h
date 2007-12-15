@@ -1,7 +1,8 @@
 #ifndef __MYSQL_DRIVER_H
 #define __MYSQL_DRIVER_H
 
-/** @file mysql_driver.h
+/**
+ * @file mysql_driver.h
  * @brief MySQL database driver.
  *
  * Implements the db_driver interface for mysql.
