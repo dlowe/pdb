@@ -19,8 +19,18 @@ void mysql_driver_initialize(void);
  */
 short mysql_driver_done(void);
 
+/**
+ * Expecting a new command?
+ *
+ * @return 1 if we're expecting a command; 0 otherwise.
+ */
 short mysql_driver_expect_commands(void);
 
+/**
+ * Expecting a reply?
+ *
+ * @return 1 if we're expecting a reply; 0 otherwise.
+ */
 short mysql_driver_expect_replies(void);
 
 /**
