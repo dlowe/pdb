@@ -12,13 +12,6 @@ static void packet_initialize(packet * p)
     p->size = 0;
 }
 
-packet *packet_NULL(void)
-{
-    static packet null;
-    packet_initialize(&null);
-    return &null;
-}
-
 packet *packet_new(void)
 {
     packet *p = malloc(sizeof(packet));

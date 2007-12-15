@@ -17,6 +17,8 @@
  */
 short mysql_driver_done(void);
 
+short mysql_driver_expect_replies(void);
+
 /**
  * Read the next packet from a file descriptor. This function is intended
  * to be called repeatedly until the packet is fully read.

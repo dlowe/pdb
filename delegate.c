@@ -207,14 +207,7 @@ static packet_status gather_replies_worker(int delegate_index,
                             packet_set_get(args->replies, delegate_index));
 }
 
-/**
- * Parallel reading of a set of packets from a set of delegate servers.
- *
- * @param[in] get_packet function for reading a single packet
- * @return a list of replies gathered from delegate servers; the caller is
- * responsible for freeing this list!
- */
-static packet_set *gather_replies(packet_reader get_packet)
+packet_set *delegate_get(packet_reader get_packet)
 {
     packet_set *replies = packet_set_new(delegate_count);
     if (!replies) {
@@ -255,14 +248,7 @@ static packet_status proxy_command_worker(int delegate_index, void *void_args)
                             &(args->sent_list[delegate_index]));
 }
 
-/**
- * Parallel writing of a packet to a set of delegate servers.
- *
- * @param[in] command the packet to write to all delegates.
- * @param[in] put_packet function for writing a single packet.
- * @return 1 on success, 0 on failure
- */
-static int proxy_command(packet * command, packet_writer put_packet)
+int delegate_put(action a, packet * command, packet_writer put_packet)
 {
     int *sent_list = malloc(sizeof(int) * delegate_count);
     if (!sent_list) {
@@ -285,29 +271,4 @@ static int proxy_command(packet * command, packet_writer put_packet)
 
     free(sent_list);
     return 1;
-}
-
-packet_set *delegate_action(action what, packet * command,
-                            packet_writer put_packet,
-                            packet_reader get_packet)
-{
-    switch (what) {
-    case ACTION_NONE:
-        return 0;
-    case ACTION_NOOP_ALL:
-        return gather_replies(get_packet);
-    case ACTION_PROXY_ALL:
-        if (!proxy_command(command, put_packet)) {
-            return 0;
-        }
-        return gather_replies(get_packet);
-    };
-    return 0;
-}
-
-void delegate_action_cleanup(packet * replies)
-{
-    if (replies) {
-        free(replies);
-    }
 }

@@ -18,6 +18,12 @@ short mysql_driver_done(void)
     return done;
 }
 
+static short expect_replies = 0;
+short mysql_driver_expect_replies(void)
+{
+    return expect_replies;
+}
+
 packet_status mysql_driver_get_packet(int fd, packet * p)
 {
     if (p->bytes == 0) {
@@ -104,17 +110,23 @@ packet_status mysql_driver_put_packet(int fd, packet * p, int *sent)
 
     *sent += len;
     if (*sent < p->size) {
+        lo(LOG_DEBUG, "mysql_driver_put_packet: wrote %ld of %ld bytes",
+           *sent, p->size);
         return PACKET_INCOMPLETE;
     }
+    lo(LOG_DEBUG, "mysql_driver_put_packet: completed packet of length %ld",
+       p->size);
     return PACKET_COMPLETE;
 }
 
 action mysql_driver_actions_from(packet * in_command)
 {
+    expect_replies = 1;
     return ACTION_PROXY_ALL;
 }
 
 packet *mysql_driver_reduce_replies(packet_set * replies)
 {
+    expect_replies = 0;
     return packet_copy(packet_set_get(replies, 0));
 }

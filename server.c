@@ -83,8 +83,7 @@ void server(int fd, struct sockaddr_in *addr)
 
     /* for the initial part of the connection, the server-side drives the
        conversation */
-    packet_set *greetings = delegate_action(ACTION_NOOP_ALL, packet_NULL(),
-                                            db.put_packet, db.get_packet);
+    packet_set *greetings = delegate_get(db.get_packet);
     if (!greetings) {
         lo(LOG_ERROR, "server: error delegating command");
         delegate_disconnect();
@@ -123,32 +122,44 @@ void server(int fd, struct sockaddr_in *addr)
             return;
         }
 
-        lo(LOG_DEBUG, "server: got command, delegating...");
+        lo(LOG_DEBUG, "server: delegating command...");
 
-        packet_set *replies = delegate_action(db.actions_from(in_command),
-                                              in_command, db.put_packet,
-                                              db.get_packet);
-        packet_delete(in_command);
-        if (!replies) {
+        if (!delegate_put(db.actions_from(in_command), in_command,
+                          db.put_packet)) {
             lo(LOG_ERROR, "server: error delegating command");
+            packet_delete(in_command);
             delegate_disconnect();
             return;
         }
-        packet *final_reply = db.reduce_replies(replies);
-        packet_set_delete(replies);
 
-        lo(LOG_DEBUG, "server: returning reply...");
+        packet_delete(in_command);
 
-        if (send_reply(fd, final_reply, db.put_packet) == -1) {
-            lo(LOG_ERROR, "server: error sending reply: %s", strerror(errno));
+        while (db.expect_replies()) {
+            lo(LOG_DEBUG, "server: waiting for reply...");
+
+            packet_set *replies = delegate_get(db.get_packet);
+            if (!replies) {
+                lo(LOG_ERROR, "server: error delegating command");
+                delegate_disconnect();
+                return;
+            }
+            packet *final_reply = db.reduce_replies(replies);
+            packet_set_delete(replies);
+
+            lo(LOG_DEBUG, "server: returning reply...");
+
+            if (send_reply(fd, final_reply, db.put_packet) == -1) {
+                lo(LOG_ERROR, "server: error sending reply: %s",
+                   strerror(errno));
+                packet_delete(final_reply);
+                delegate_disconnect();
+                return;
+            }
+
             packet_delete(final_reply);
-            delegate_disconnect();
-            return;
         }
 
         lo(LOG_DEBUG, "server: done with this conversation.");
-
-        packet_delete(final_reply);
     }
 
     /* teardown all the delegate connections */

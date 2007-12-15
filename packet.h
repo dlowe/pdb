@@ -40,13 +40,6 @@ typedef packet_status (*packet_reader)(int, packet *);
 typedef packet_status (*packet_writer)(int, packet *, int *);
 
 /**
- * NULL packet object
- *
- * @return a static pointer to a NULL packet
- */
-packet *packet_NULL(void);
-
-/**
  * Allocate a new packet object.
  *
  * @return freshly allocated packet, initialized to empty

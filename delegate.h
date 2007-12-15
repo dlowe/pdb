@@ -20,17 +20,23 @@
 int delegate_connect(void);
 
 /**
+ * Parallel reading of a set of packets from a set of delegate servers.
  *
- * @param[in] what what action to delegate
- * @param[in] with what command is being delegated
- * @param[in] put_packet driver function for writing commands
- * @param[in] get_packet driver function for reading replies
- * @return list of replies from all delegates; the caller is responsible for
- * freeing this list
+ * @param[in] get_packet function for reading a single packet
+ * @return a list of replies gathered from delegate servers; the caller is
+ * responsible for freeing this list!
  */
-packet_set* delegate_action(action what, packet *with,
-                            packet_writer put_packet,
-                            packet_reader get_packet);
+packet_set* delegate_get(packet_reader get_packet);
+
+/**
+ * Parallel writing of a packet to a set of delegate servers.
+ *
+ * @param[in] a action to perform with this packet
+ * @param[in] command the packet to write to all delegates.
+ * @param[in] put_packet function for writing a single packet.
+ * @return 1 on success, 0 on failure
+ */
+int delegate_put(action a, packet *command, packet_writer put_packet);
 
 /**
  * Disconnect from all delegates.

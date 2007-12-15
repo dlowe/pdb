@@ -17,6 +17,7 @@
  */
 typedef struct {
     short (*done)(void);
+    short (*expect_replies)(void);
     packet_reader get_packet;
     packet_writer put_packet;
     action (*actions_from)(packet *);
