@@ -172,8 +172,8 @@ void mysql_driver_got_command(packet * in_command)
         done = 1;
     }
     if (command == COM_QUERY) {
-        lo(LOG_DEBUG, "mysql_driver_got_command: query: '%*s'",
-           in_command->size - 5, in_command->bytes + 5);
+        lo(LOG_DEBUG, "mysql_driver_got_command: query: %d '%*s'",
+           in_command->size - 5, in_command->size - 5, in_command->bytes + 5);
     }
 
     return;
@@ -200,11 +200,7 @@ packet *mysql_driver_reduce_replies(packet_set * replies)
     case REP_TABLE_FIELDS:
         lo(LOG_DEBUG, "mysql_driver_reduce_replies: field");
         if ((unsigned char)(p->bytes[4]) == 0xfe) {
-            if (p->size > 5) {
-                expect_replies = REP_NONE;
-            } else {
-                expect_replies = REP_TABLE_ROWS;
-            }
+            expect_replies = REP_TABLE_ROWS;
         }
         break;
     case REP_TABLE_ROWS:
