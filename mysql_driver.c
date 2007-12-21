@@ -27,6 +27,7 @@ enum enum_server_command {
 
 static short done;
 static short waiting_for_client_auth;
+static short expecting_rows;
 
 enum expect_reply_state {
     REP_NONE,
@@ -41,6 +42,7 @@ void mysql_driver_initialize(void)
     done = 0;
     expect_replies = REP_GREETING;
     waiting_for_client_auth = 0;
+    expecting_rows = 0;
 }
 
 short mysql_driver_done(void)
@@ -155,6 +157,7 @@ packet_status mysql_driver_put_packet(int fd, packet * p, int *sent)
 
 void mysql_driver_got_command(packet * in_command)
 {
+    expecting_rows = 0;
     expect_replies = REP_SIMPLE;
     if (waiting_for_client_auth) {
         waiting_for_client_auth = 0;
@@ -172,6 +175,7 @@ void mysql_driver_got_command(packet * in_command)
         done = 1;
     }
     if (command == COM_QUERY) {
+        expecting_rows = 1;
         lo(LOG_DEBUG, "mysql_driver_got_command: query: %d '%*s'",
            in_command->size - 5, in_command->size - 5, in_command->bytes + 5);
     }
@@ -189,8 +193,6 @@ packet *mysql_driver_reduce_replies(packet_set * replies)
         expect_replies = REP_NONE;
         break;
     case REP_SIMPLE:
-        lo(LOG_DEBUG, "mysql_driver_reduce_replies: packet of "
-           "size %d says to expect %d fields", p->size, p->bytes[4]);
         if (p->bytes[4] == 0) {
             expect_replies = REP_NONE;
         } else {
@@ -198,15 +200,21 @@ packet *mysql_driver_reduce_replies(packet_set * replies)
         }
         break;
     case REP_TABLE_FIELDS:
-        lo(LOG_DEBUG, "mysql_driver_reduce_replies: field");
         if ((unsigned char)(p->bytes[4]) == 0xfe) {
-            expect_replies = REP_TABLE_ROWS;
+            if (expecting_rows) {
+                expect_replies = REP_TABLE_ROWS;
+            } else {
+                expect_replies = REP_NONE;
+            }
+        } else {
+            lo(LOG_DEBUG, "mysql_driver_reduce_replies: field");
         }
         break;
     case REP_TABLE_ROWS:
-        lo(LOG_DEBUG, "mysql_driver_reduce_replies: row");
         if ((unsigned char)(p->bytes[4]) == 0xfe) {
             expect_replies = REP_NONE;
+        } else {
+            lo(LOG_DEBUG, "mysql_driver_reduce_replies: row");
         }
         break;
     case REP_NONE:
