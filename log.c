@@ -63,10 +63,14 @@ void lo(log_level level, char *format, ...)
         return;
     }
 
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+
     va_list args;
     va_start(args, format);
     flockfile(l.file);
-    fprintf(l.file, "%d %9ld %8d ", level, time(0), l.pid);
+    fprintf(l.file, "%d %10ld.%06ld %6d ", level, tv.tv_sec, (long)tv.tv_usec,
+            l.pid);
     /* Flawfinder: ignore format */
     vfprintf(l.file, format, args);
     fprintf(l.file, "\n");
