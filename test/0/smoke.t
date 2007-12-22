@@ -6,7 +6,7 @@ use warnings;
 use Test;
 use Socket;
 
-BEGIN { plan tests => 5 }
+BEGIN { plan tests => 6 }
 
 require('test/PDBTest.pm');
 
@@ -31,3 +31,5 @@ eval {
     PDBTest::shutdown();
 };
 ok($@, '', "shutdown failed: $@");
+
+ok(`grep ^2 test/pdb.log`, '', "error logs found");

@@ -48,6 +48,7 @@ pdb: $(OBJECTS)
 
 test: pdb
 	rm -f test/ktrace.out
+	rm -f test/pdb.log
 	prove -r test
 	# gcov $(SOURCES)
 

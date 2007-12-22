@@ -93,8 +93,12 @@ void server(int fd, struct sockaddr_in *addr)
 
             lo(LOG_DEBUG, "server: waiting for next command...");
             if (read_command(fd, in_command, db.get_packet) == -1) {
-                lo(LOG_ERROR, "server: error reading command: %s",
-                   strerror(errno));
+                if (errno != ECONNRESET) {
+                    lo(LOG_ERROR, "server: error reading command: %s",
+                       strerror(errno));
+                } else {
+                    lo(LOG_DEBUG, "server: client went away");
+                }
                 packet_delete(in_command);
                 delegate_disconnect();
                 return;
