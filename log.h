@@ -13,6 +13,10 @@
 #include <stdio.h>
 #include <unistd.h>
 
+#include "component.h"
+
+extern component log_component;
+
 /**
  * Logging levels.
  */
@@ -22,16 +26,6 @@ typedef enum {
     LOG_ERROR,
     LOG_NONE
 } log_level;
-
-/**
- * Open log file.
- *
- * @param[in] filename the name of the log file to open.
- * @param[in] level the level of detail at which to log. If LOG_NONE is
- * specified, no logs are written.
- @ @return 1 on success, 0 on failure
- */
-int log_open(char *filename, log_level level);
 
 /**
  * Reopen log file. This should be called after forking.
@@ -48,18 +42,5 @@ int log_reopen(void);
  * @param[in] ... printf-style arguments
  */
 void lo(log_level level, char *format, ...);
-
-/**
- * Close the log.
- */
-void log_close(void);
-
-/**
- * Convert from a string to a log level.
- *
- * @param[in] string string description of the log level
- * @return a log_level
- */
-log_level log_level_from_string(const char *string);
 
 #endif

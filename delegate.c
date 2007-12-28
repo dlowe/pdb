@@ -25,7 +25,6 @@ typedef struct {
 static delegate delegates[] = { {-1, 0, 3306, "127.0.0.1"} };
 static int delegate_count = 1;
 
-
 /**
  * Per-delegate information used by delegate_io when multiplexing I/O work
  * across the set of delegates.
@@ -271,3 +270,10 @@ int delegate_put(packet_writer put_packet, packet * command)
     free(sent_list);
     return 1;
 }
+
+component delegate_component = {
+    0,
+    0,
+    0,
+    0
+};

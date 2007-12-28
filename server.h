@@ -13,6 +13,10 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 
+#include "component.h"
+
+extern component server_component;
+
 /**
  * Top-level sequencing of a single connection.
  *

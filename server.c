@@ -151,3 +151,15 @@ void server(int fd, struct sockaddr_in *addr)
     lo(LOG_DEBUG, "server: finished work on fd %d", fd);
     return;
 }
+
+static component *server_subcomponents[] = {
+    &delegate_component,
+    0
+};
+
+component server_component = {
+    0,
+    0,
+    0,
+    server_subcomponents
+};

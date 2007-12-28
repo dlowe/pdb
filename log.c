@@ -7,8 +7,17 @@
 #include <time.h>
 #include <unistd.h>
 
+/* 3rd party includes */
+#include "confuse.h"
+
 /* project includes */
 #include "log.h"
+
+#define CFG_LOG_FILE "log_file"
+#define CFG_LOG_FILE_DEFAULT "pdb.log"
+
+#define CFG_LOG_LEVEL "log_level"
+#define CFG_LOG_LEVEL_DEFAULT LOG_DEBUG
 
 typedef struct {
     char *filename;
@@ -19,11 +28,23 @@ typedef struct {
 
 static log_info l;
 
-int log_open(char *filename, log_level level)
+static void log_close(void)
 {
-    l.level = level;
+    if (l.filename) {
+        free(l.filename);
+        l.filename = 0;
+    }
+    if (l.file) {
+        fclose(l.file);
+        l.file = 0;
+    }
+}
+
+static int log_open(cfg_t * configuration)
+{
+    l.level = cfg_getint(configuration, CFG_LOG_LEVEL);
     if (l.level < LOG_NONE) {
-        l.filename = strdup(filename);
+        l.filename = strdup(cfg_getstr(configuration, CFG_LOG_FILE));
         if (!l.filename) {
             log_close();
             return 0;
@@ -79,19 +100,7 @@ void lo(log_level level, char *format, ...)
     va_end(args);
 }
 
-void log_close(void)
-{
-    if (l.filename) {
-        free(l.filename);
-        l.filename = 0;
-    }
-    if (l.file) {
-        fclose(l.file);
-        l.file = 0;
-    }
-}
-
-log_level log_level_from_string(const char *string)
+static log_level log_level_from_string(const char *string)
 {
     if (strcasecmp(string, "error") == 0) {
         return LOG_ERROR;
@@ -104,3 +113,23 @@ log_level log_level_from_string(const char *string)
     }
     return LOG_NONE;
 }
+
+static int log_level_parser(cfg_t * cfg, cfg_opt_t * opt, const char *value,
+                            void *result)
+{
+    *(int *)result = log_level_from_string(value);
+    return 0;
+}
+
+static cfg_opt_t log_options[] = {
+    CFG_STR(CFG_LOG_FILE, CFG_LOG_FILE_DEFAULT, 0),
+    CFG_INT_CB(CFG_LOG_LEVEL, CFG_LOG_LEVEL_DEFAULT, 0, log_level_parser),
+    CFG_END()
+};
+
+component log_component = {
+    log_open,
+    log_close,
+    log_options,
+    NULL
+};

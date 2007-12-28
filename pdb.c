@@ -15,7 +15,7 @@
 #include "confuse.h"
 
 /* project includes */
-#include "cfg.h"
+#include "component.h"
 #include "concurrency.h"
 #include "daemon.h"
 #include "log.h"
@@ -53,6 +53,40 @@ static void signal_unblock(int sig)
     sigprocmask(SIG_UNBLOCK, &set, 0);
 }
 
+#define CFG_LISTEN_PORT "listen_port"
+#define CFG_LISTEN_PORT_DEFAULT 7668
+
+#define CFG_LISTEN_QDEPTH "listen_qdepth"
+#define CFG_LISTEN_QDEPTH_DEFAULT 0
+
+static cfg_opt_t options[] = {
+    CFG_INT(CFG_LISTEN_PORT, CFG_LISTEN_PORT_DEFAULT, 0),
+    CFG_INT(CFG_LISTEN_QDEPTH, CFG_LISTEN_QDEPTH_DEFAULT, 0),
+    CFG_END()
+};
+
+static int listen_port;
+static int listen_qdepth;
+static int pdb_initialize(cfg_t * configuration)
+{
+    listen_port = cfg_getint(configuration, CFG_LISTEN_PORT);
+    listen_qdepth = cfg_getint(configuration, CFG_LISTEN_QDEPTH);
+    return 1;
+}
+
+static component *pdb_subcomponents[] = {
+    &log_component,
+    &server_component,
+    0
+};
+
+static component pdb_component = {
+    pdb_initialize,
+    0,
+    options,
+    pdb_subcomponents
+};
+
 int main(int argc, char **argv)
 {
     char *configuration_filename = 0;
@@ -77,24 +111,13 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-    configuration = cfg_init(options, CFGF_NONE);
-    if (!configuration) {
-        fprintf(stderr, "error initializing configuration system");
+    if (daemon_begin() == -1) {
+        fprintf(stderr, "error in daemon_begin(): %s\n", strerror(errno));
         exit(1);
     }
 
-    switch (cfg_parse(configuration, configuration_filename)) {
-    case CFG_SUCCESS:
-        break;
-    case CFG_FILE_ERROR:
-    case CFG_PARSE_ERROR:
-        fprintf(stderr, "error reading configuration file [%s]",
-                configuration_filename);
-        exit(1);
-    };
-
-    if (daemon_begin() == -1) {
-        fprintf(stderr, "error in daemon_begin(): %s\n", strerror(errno));
+    if (!component_configure(configuration_filename, &pdb_component)) {
+        daemon_error("error configuring components\n");
         exit(1);
     }
 
@@ -115,7 +138,7 @@ int main(int argc, char **argv)
 
     struct sockaddr_in bind_addr;
     bind_addr.sin_family = AF_INET;
-    bind_addr.sin_port = listen_port();
+    bind_addr.sin_port = listen_port;
     bind_addr.sin_addr.s_addr = INADDR_ANY;
     if (bind(socket_fd, (struct sockaddr *)&bind_addr,
              sizeof(bind_addr)) == -1) {
@@ -124,17 +147,12 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-    if (listen(socket_fd, listen_qdepth()) == -1) {
+    if (listen(socket_fd, listen_qdepth) == -1) {
         daemon_error("can't listen to socket: %s\n", strerror(errno));
         close(socket_fd);
         exit(1);
     }
 
-    if (!log_open(log_file(), log_level())) {
-        daemon_error("can't open log\n");
-        close(socket_fd);
-        exit(1);
-    }
     lo(LOG_DEBUG, "pdb: booting...");
 
     daemon_done();
@@ -184,8 +202,8 @@ int main(int argc, char **argv)
     concurrency_teardown();
 
     lo(LOG_INFO, "pdb: done.");
-    log_close();
 
     close(socket_fd);
+    component_unconfigure(&pdb_component);
     exit(0);
 }

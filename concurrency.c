@@ -48,7 +48,6 @@ int concurrency_handle_connection(int connection_fd,
         close(connection_fd);
         lo(LOG_DEBUG, "concurrency_handle_connection: finished work on fd %d",
            connection_fd);
-        log_close();
         exit(0);
     }
 

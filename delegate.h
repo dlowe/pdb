@@ -10,6 +10,9 @@
  */
 
 #include "packet.h"
+#include "component.h"
+
+extern component delegate_component;
 
 /**
  * Connect to all delegates.
