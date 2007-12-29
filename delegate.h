@@ -12,7 +12,7 @@
 #include "packet.h"
 #include "component.h"
 
-extern component delegate_component;
+DECLARE_COMPONENT(delegate);
 
 /**
  * Connect to all delegates.

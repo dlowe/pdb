@@ -15,7 +15,7 @@
 
 #include "component.h"
 
-extern component server_component;
+DECLARE_COMPONENT(server);
 
 /**
  * Top-level sequencing of a single connection.

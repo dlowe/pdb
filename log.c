@@ -28,6 +28,9 @@ typedef struct {
 
 static log_info l;
 
+/**
+ * Close the log file.
+ */
 static void log_close(void)
 {
     if (l.filename) {
@@ -40,6 +43,12 @@ static void log_close(void)
     }
 }
 
+/**
+ * Open a log file.
+ *
+ * @param[in] configuration The global configuration.
+ * @return 1 on success, 0 on failure.
+ */
 static int log_open(cfg_t * configuration)
 {
     l.level = cfg_getint(configuration, CFG_LOG_LEVEL);
@@ -100,6 +109,12 @@ void lo(log_level level, char *format, ...)
     va_end(args);
 }
 
+/**
+ * Convert from a string to a log level enumeration.
+ *
+ * @param[in] string A string description of a log level.
+ * @return a log_level value (LOG_NONE is the default)
+ */
 static log_level log_level_from_string(const char *string)
 {
     if (strcasecmp(string, "error") == 0) {
@@ -131,5 +146,5 @@ component log_component = {
     log_open,
     log_close,
     log_options,
-    NULL
+    SUBCOMPONENTS_NONE
 };

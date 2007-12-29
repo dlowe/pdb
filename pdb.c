@@ -75,14 +75,14 @@ static int pdb_initialize(cfg_t * configuration)
 }
 
 static component *pdb_subcomponents[] = {
-    &log_component,
-    &server_component,
-    0
+    SUBCOMPONENT(log),
+    SUBCOMPONENT(server),
+    SUBCOMPONENT_END()
 };
 
 static component pdb_component = {
     pdb_initialize,
-    0,
+    SHUTDOWN_NONE,
     options,
     pdb_subcomponents
 };

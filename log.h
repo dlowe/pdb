@@ -15,7 +15,7 @@
 
 #include "component.h"
 
-extern component log_component;
+DECLARE_COMPONENT(log);
 
 /**
  * Logging levels.

@@ -67,11 +67,7 @@ static int read_command(int fd, packet * p, packet_reader get_packet)
 
 void server(int fd, struct sockaddr_in *addr)
 {
-    db_driver db;
-
-    /* XXX: obviously.... */
-    db = db_driver_load("mysql");
-    db.initialize();
+    db_driver_initialize();
 
     /* establish network-level connections to all delegate databases */
     if (delegate_connect() == -1) {
@@ -81,9 +77,9 @@ void server(int fd, struct sockaddr_in *addr)
     }
 
     /* loop over conversation between client and delegates */
-    while (!db.done()) {
+    while (!db_driver_done()) {
         /* read commands and delegate them */
-        while (db.expect_commands()) {
+        while (db_driver_expect_commands()) {
             packet *in_command = packet_new();
             if (!in_command) {
                 lo(LOG_ERROR, "server: out of memory!");
@@ -92,7 +88,7 @@ void server(int fd, struct sockaddr_in *addr)
             }
 
             lo(LOG_DEBUG, "server: waiting for next command...");
-            if (read_command(fd, in_command, db.get_packet) == -1) {
+            if (read_command(fd, in_command, db_driver_get_packet) == -1) {
                 if (errno != ECONNRESET) {
                     lo(LOG_ERROR, "server: error reading command: %s",
                        strerror(errno));
@@ -103,10 +99,10 @@ void server(int fd, struct sockaddr_in *addr)
                 delegate_disconnect();
                 return;
             }
-            db.got_command(in_command);
+            db_driver_got_command(in_command);
 
             lo(LOG_DEBUG, "server: delegating command...");
-            if (!delegate_put(db.put_packet, in_command)) {
+            if (!delegate_put(db_driver_put_packet, in_command)) {
                 lo(LOG_ERROR, "server: error delegating command");
                 packet_delete(in_command);
                 delegate_disconnect();
@@ -117,21 +113,21 @@ void server(int fd, struct sockaddr_in *addr)
         }
 
         /* read replies from delegates, reduce and return them */
-        while (db.expect_replies()) {
+        while (db_driver_expect_replies()) {
             lo(LOG_DEBUG, "server: waiting for reply...");
 
-            packet_set *replies = delegate_get(db.get_packet);
+            packet_set *replies = delegate_get(db_driver_get_packet);
             if (!replies) {
                 lo(LOG_ERROR, "server: error getting delegate replies");
                 delegate_disconnect();
                 return;
             }
-            packet *final_reply = db.reduce_replies(replies);
+            packet *final_reply = db_driver_reduce_replies(replies);
             packet_set_delete(replies);
 
             lo(LOG_DEBUG, "server: returning reply...");
 
-            if (send_reply(fd, final_reply, db.put_packet) == -1) {
+            if (send_reply(fd, final_reply, db_driver_put_packet) == -1) {
                 lo(LOG_ERROR, "server: error sending reply: %s",
                    strerror(errno));
                 packet_delete(final_reply);
@@ -153,13 +149,14 @@ void server(int fd, struct sockaddr_in *addr)
 }
 
 static component *server_subcomponents[] = {
-    &delegate_component,
-    0
+    SUBCOMPONENT(db_driver),
+    SUBCOMPONENT(delegate),
+    SUBCOMPONENT_END()
 };
 
 component server_component = {
-    0,
-    0,
-    0,
+    INITIALIZE_NONE,
+    SHUTDOWN_NONE,
+    OPTIONS_NONE,
     server_subcomponents
 };

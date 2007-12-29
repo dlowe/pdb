@@ -8,6 +8,7 @@
 #include <poll.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <netdb.h>
 
 /* project includes */
 #include "delegate.h"
@@ -18,12 +19,39 @@ typedef struct {
     int fd;
     short connected;
     int port;
-    char *ip;
+    struct in_addr ip;
 } delegate;
 
-/* XXX: this is all runtime configuration... */
-static delegate delegates[] = { {-1, 0, 3306, "127.0.0.1"} };
-static int delegate_count = 1;
+#define CFG_DELEGATE "delegate"
+
+#define CFG_HOSTNAME "hostname"
+#define CFG_HOSTNAME_DEFAULT 0
+
+#define CFG_PORT "port"
+#define CFG_PORT_DEFAULT 3306
+
+static delegate *delegates = 0;
+static int delegate_count = 0;
+
+static int delegate_initialize(cfg_t * configuration)
+{
+    delegate_count = cfg_size(configuration, CFG_DELEGATE);
+    delegates = malloc(sizeof(delegate) * delegate_count);
+    if (!delegates) {
+        delegate_count = 0;
+        return 0;
+    }
+
+    for (int i = 0; i < delegate_count; ++i) {
+        cfg_t *delegate_config = cfg_getnsec(configuration, CFG_DELEGATE, i);
+
+        delegates[i].fd = -1;
+        delegates[i].connected = 0;
+        delegates[i].port = cfg_getint(delegate_config, CFG_PORT);
+        delegates[i].ip.s_addr = cfg_getint(delegate_config, CFG_HOSTNAME);
+    }
+    return 1;
+}
 
 /**
  * Per-delegate information used by delegate_io when multiplexing I/O work
@@ -38,9 +66,9 @@ typedef struct {
  * This higher-order function orchestrates I/O work across the set of delegates
  * using a worker function to perform actual I/O.
  * 
- * @param event the set of poll(2) events which this worker cares about
- * @param worker the worker function
- * @param worker_args extra arguments to the worker function
+ * @param[in] event the set of poll(2) events which this worker cares about
+ * @param[in] worker the worker function
+ * @param[in,out] worker_args extra arguments to the worker function
  * @return 0 on failure, 1 on success
  */
 static int delegate_io(short event, packet_status(*worker) (int, void *),
@@ -122,7 +150,8 @@ static packet_status delegate_connect_worker(int delegate_index,
        called when the connection completes (according to poll()) */
     delegates[delegate_index].connected = 1;
     lo(LOG_DEBUG, "delegate_connect_worker: connection to %s:%d completed",
-       delegates[delegate_index].ip, delegates[delegate_index].port);
+       inet_ntoa(delegates[delegate_index].ip),
+       delegates[delegate_index].port);
     return PACKET_COMPLETE;
 }
 
@@ -145,7 +174,10 @@ int delegate_connect(void)
 
         connect_addr.sin_family = AF_INET;
         connect_addr.sin_port = delegates[i].port;
-        inet_aton(delegates[i].ip, &(connect_addr.sin_addr));
+        connect_addr.sin_addr = delegates[i].ip;
+
+        lo(LOG_DEBUG, "delegate_connect: starting connection to %s:%d",
+           inet_ntoa(delegates[i].ip), delegates[i].port);
 
         if (connect(delegates[i].fd, (struct sockaddr *)&connect_addr,
                     sizeof(connect_addr)) == -1) {
@@ -271,9 +303,41 @@ int delegate_put(packet_writer put_packet, packet * command)
     return 1;
 }
 
+static void delegate_shutdown(void)
+{
+    if (delegates) {
+        free(delegates);
+        delegates = 0;
+        delegate_count = 0;
+    }
+}
+
+static int hostname_parser(cfg_t * cfg, cfg_opt_t * opt, const char *value,
+                           void *result)
+{
+    struct hostent *he = gethostbyname(value);
+    if (!he) {
+        return 1;
+    }
+
+    *(int *)result = ((struct in_addr *)he->h_addr)->s_addr;
+    return 0;
+}
+
+static cfg_opt_t delegate_options[] = {
+    CFG_INT_CB(CFG_HOSTNAME, CFG_HOSTNAME_DEFAULT, 0, hostname_parser),
+    CFG_INT(CFG_PORT, CFG_PORT_DEFAULT, 0),
+    CFG_END()
+};
+
+static cfg_opt_t options[] = {
+    CFG_SEC(CFG_DELEGATE, delegate_options, CFGF_TITLE | CFGF_MULTI),
+    CFG_END()
+};
+
 component delegate_component = {
-    0,
-    0,
-    0,
-    0
+    delegate_initialize,
+    delegate_shutdown,
+    options,
+    SUBCOMPONENTS_NONE
 };

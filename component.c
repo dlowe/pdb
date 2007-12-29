@@ -7,23 +7,39 @@
 /* project includes */
 #include "component.h"
 
+/**
+ * This higher-order function maps a callback across the tree of components.
+ *
+ * @param[in] node the current component node
+ * @param[in,out] state pointer to any state required by the callback
+ * @param[in] callback callback function to be called for each node
+ */
 static void component_map(component * node, void *state,
                           void (*callback) (component *, void *))
 {
     callback(node, state);
-    if (node->subcomponents) {
-        for (int i = 0; node->subcomponents[i]; ++i) {
+    if (node->subcomponents != SUBCOMPONENTS_NONE) {
+        for (int i = 0; node->subcomponents[i] != SUBCOMPONENT_END(); ++i) {
             component_map(node->subcomponents[i], state, callback);
         }
     }
 }
 
+/**
+ * Arguments to option_list_callback
+ */
 typedef struct {
     cfg_opt_t *options;
     int count;
     short error;
 } option_list_callback_state;
 
+/**
+ * component callback function for aggregating configuration options.
+ *
+ * @param[in] c The current component
+ * @param[in,out] s Pointer to option_list_callback_state
+ */
 static void option_list_callback(component * c, void *s)
 {
     option_list_callback_state *state = (option_list_callback_state *) s;
@@ -32,7 +48,7 @@ static void option_list_callback(component * c, void *s)
         return;
     }
 
-    if (c->options) {
+    if (c->options != OPTIONS_NONE) {
         for (int i = 0; c->options[i].name; ++i) {
             state->options = realloc(state->options,
                                      (state->count + 1) * sizeof(cfg_opt_t));
@@ -47,11 +63,20 @@ static void option_list_callback(component * c, void *s)
     }
 }
 
+/**
+ * Arguments to initializer_callback
+ */
 typedef struct {
     cfg_t *configuration;
     short error;
 } initializer_callback_state;
 
+/**
+ * component callback function for calling initializers.
+ *
+ * @param[in] c The current component
+ * @param[in,out] s Pointer to initializer_callback_state
+ */
 static void initializer_callback(component * c, void *s)
 {
     initializer_callback_state *state = (initializer_callback_state *) s;
@@ -60,8 +85,10 @@ static void initializer_callback(component * c, void *s)
         return;
     }
 
-    if (c->initialize) {
-        c->initialize(state->configuration);
+    if (c->initialize != INITIALIZE_NONE) {
+        if (!c->initialize(state->configuration)) {
+            state->error = 1;
+        }
     }
 }
 
@@ -102,9 +129,16 @@ int component_configure(char *configuration_filename, component * root)
     return 1;
 }
 
-static void shutdown_callback(component * c, void *s)
+
+/**
+ * component callback function for calling shutdowns.
+ *
+ * @param[in] c The current component
+ * @param[in] s NULL pointer
+ */
+static void shutdown_callback(component * c, void *void_state)
 {
-    if (c->shutdown) {
+    if (c->shutdown != SHUTDOWN_NONE) {
         c->shutdown();
     }
 }
