@@ -92,7 +92,7 @@ static void initializer_callback(component * c, void *s)
     }
 }
 
-int component_configure(char *configuration_filename, component * root)
+int component_configure(const char *configuration_filename, component * root)
 {
     option_list_callback_state option_state;
     option_state.options = 0;

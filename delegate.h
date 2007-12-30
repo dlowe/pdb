@@ -7,6 +7,8 @@
  * 
  * This API hides the details of managing the pool of delegate database
  * connections.
+ *
+ * The delegate component should be exclusively used by the server component.
  */
 
 #include "packet.h"
@@ -34,10 +36,13 @@ packet_set* delegate_get(packet_reader get_packet);
  * Parallel write of a packet to a set of delegate servers.
  *
  * @param[in] put_packet function for writing a single packet.
+ * @param[in] rewrite_command function for per-delegate command rewriting.
  * @param[in] command the packet to write to all delegates.
  * @return 1 on success, 0 on failure
  */
-int delegate_put(packet_writer put_packet, packet *command);
+int delegate_put(packet_writer put_packet,
+                 int (*rewrite_command)(packet *, packet *, const char *),
+                 packet *command);
 
 /**
  * Disconnect from all delegates.

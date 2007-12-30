@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <netdb.h>
+#include <string.h>
 
 /* project includes */
 #include "delegate.h"
@@ -20,6 +21,7 @@ typedef struct {
     short connected;
     int port;
     struct in_addr ip;
+    char *name;
 } delegate;
 
 #define CFG_DELEGATE "delegate"
@@ -30,9 +32,18 @@ typedef struct {
 #define CFG_PORT "port"
 #define CFG_PORT_DEFAULT 3306
 
+#define CFG_NAME "name"
+#define CFG_NAME_DEFAULT "pdb"
+
 static delegate *delegates = 0;
 static int delegate_count = 0;
 
+/**
+ * Component initialization for the delegate component.
+ *
+ * @param[in] configuration The current configuration.
+ * @return 1 on success, 0 on failure
+ */
 static int delegate_initialize(cfg_t * configuration)
 {
     delegate_count = cfg_size(configuration, CFG_DELEGATE);
@@ -49,6 +60,10 @@ static int delegate_initialize(cfg_t * configuration)
         delegates[i].connected = 0;
         delegates[i].port = cfg_getint(delegate_config, CFG_PORT);
         delegates[i].ip.s_addr = cfg_getint(delegate_config, CFG_HOSTNAME);
+        delegates[i].name = strdup(cfg_getstr(delegate_config, CFG_NAME));
+        if (!delegates[i].name) {
+            return 0;
+        }
     }
     return 1;
 }
@@ -261,7 +276,7 @@ packet_set *delegate_get(packet_reader get_packet)
 typedef struct {
     int *sent_list;
     packet_writer put_packet;
-    packet *command;
+    packet_set *commands;
 } proxy_command_worker_args;
 
 /**
@@ -274,18 +289,33 @@ typedef struct {
 static packet_status proxy_command_worker(int delegate_index, void *void_args)
 {
     proxy_command_worker_args *args = (proxy_command_worker_args *) void_args;
-    return args->put_packet(delegates[delegate_index].fd, args->command,
+    return args->put_packet(delegates[delegate_index].fd,
+                            packet_set_get(args->commands, delegate_index),
                             &(args->sent_list[delegate_index]));
 }
 
-int delegate_put(packet_writer put_packet, packet * command)
+int delegate_put(packet_writer put_packet,
+                 int (*rewrite_command) (packet *, packet *, const char *),
+                 packet * command)
 {
     int *sent_list = malloc(sizeof(int) * delegate_count);
     if (!sent_list) {
         return 0;
     }
 
+    packet_set *commands = packet_set_new(delegate_count);
+    if (!commands) {
+        free(sent_list);
+        return 0;
+    }
+
     for (int i = 0; i < delegate_count; ++i) {
+        if (!rewrite_command(command, packet_set_get(commands, i),
+                             delegates[i].name)) {
+            packet_set_delete(commands);
+            free(sent_list);
+            return 0;
+        }
         sent_list[i] = 0;
     }
 
@@ -293,12 +323,14 @@ int delegate_put(packet_writer put_packet, packet * command)
     proxy_command_worker_args args;
     args.sent_list = sent_list;
     args.put_packet = put_packet;
-    args.command = command;
+    args.commands = commands;
     if (!delegate_io(POLLOUT, proxy_command_worker, &args)) {
+        packet_set_delete(commands);
         free(sent_list);
         return 0;
     }
 
+    packet_set_delete(commands);
     free(sent_list);
     return 1;
 }
@@ -306,6 +338,12 @@ int delegate_put(packet_writer put_packet, packet * command)
 static void delegate_shutdown(void)
 {
     if (delegates) {
+        for (int i = 0; i < delegate_count; ++i) {
+            if (delegates[i].name) {
+                free(delegates[i].name);
+                delegates[i].name = 0;
+            }
+        }
         free(delegates);
         delegates = 0;
         delegate_count = 0;
@@ -327,6 +365,7 @@ static int hostname_parser(cfg_t * cfg, cfg_opt_t * opt, const char *value,
 static cfg_opt_t delegate_options[] = {
     CFG_INT_CB(CFG_HOSTNAME, CFG_HOSTNAME_DEFAULT, 0, hostname_parser),
     CFG_INT(CFG_PORT, CFG_PORT_DEFAULT, 0),
+    CFG_STR(CFG_NAME, CFG_NAME_DEFAULT, 0),
     CFG_END()
 };
 

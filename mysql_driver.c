@@ -4,6 +4,7 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 
 /* project includes */
 #include "log.h"
@@ -27,6 +28,7 @@ enum enum_server_command {
 
 static short done;
 static short waiting_for_client_auth;
+static short command_is_client_auth;
 static short expecting_rows;
 
 enum expect_reply_state {
@@ -42,6 +44,7 @@ void mysql_driver_initialize(void)
     done = 0;
     expect_replies = REP_GREETING;
     waiting_for_client_auth = 0;
+    command_is_client_auth = 0;
     expecting_rows = 0;
 }
 
@@ -157,10 +160,13 @@ packet_status mysql_driver_put_packet(int fd, packet * p, int *sent)
 
 void mysql_driver_got_command(packet * in_command)
 {
+    command_is_client_auth = 0;
     expecting_rows = 0;
     expect_replies = REP_SIMPLE;
+
     if (waiting_for_client_auth) {
         waiting_for_client_auth = 0;
+        command_is_client_auth = 1;
         return;
     }
 
@@ -222,5 +228,41 @@ packet *mysql_driver_reduce_replies(packet_set * replies)
            "any replies!");
         return 0;
     };
-    return packet_copy(packet_set_get(replies, 0));
+    return p;
+}
+
+static void edit_packet_length(packet * p)
+{
+    long packet_length = p->size - HEADER_SIZE;
+    p->bytes[0] = (unsigned char)(packet_length);
+    p->bytes[1] = (unsigned char)(packet_length >> 8);
+    p->bytes[2] = (unsigned char)(packet_length >> 16);
+}
+
+int mysql_driver_rewrite_command(packet * in, packet * out,
+                                 const char *db_name)
+{
+    if (command_is_client_auth) {
+        int db_name_offset = 36 + strlen(in->bytes + 36) + 2;
+        out->size = out->allocated = db_name_offset + strlen(db_name) + 1;
+        out->bytes = malloc(out->size);
+        if (!out->bytes) {
+            out->size = out->allocated = 0;
+            return 0;
+        }
+        bcopy(in->bytes, out->bytes, db_name_offset);
+        bcopy(db_name, out->bytes + db_name_offset, strlen(db_name) + 1);
+        edit_packet_length(out);
+    } else {
+        packet *p = packet_copy(in);
+        if (!p) {
+            return 0;
+        }
+        out->bytes = p->bytes;
+        out->allocated = p->allocated;
+        out->size = p->size;
+        free(p);
+    }
+
+    return 1;
 }

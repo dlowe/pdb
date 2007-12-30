@@ -70,4 +70,15 @@ void mysql_driver_got_command(packet *in_command);
  */
 packet *mysql_driver_reduce_replies(packet_set * replies);
 
+/**
+ * Rewrite a command for a specific delegate.
+ *
+ * @param[in] in the original command packet
+ * @param[in,out] out the rewritten packet
+ * @param[in] db_name the name of the delegate database.
+ * @return 1 on success, 0 on failure
+ */
+int mysql_driver_rewrite_command(packet * in, packet * out,
+                                 const char *db_name);
+
 #endif

@@ -11,6 +11,7 @@ packet_reader db_driver_get_packet = 0;
 packet_writer db_driver_put_packet = 0;
 void (*db_driver_got_command) (packet *) = 0;
 packet *(*db_driver_reduce_replies) (packet_set *) = 0;
+int (*db_driver_rewrite_command) (packet *, packet *, const char *) = 0;
 
 static int db_driver_load(cfg_t * configuration)
 {
@@ -22,6 +23,7 @@ static int db_driver_load(cfg_t * configuration)
     db_driver_put_packet = mysql_driver_put_packet;
     db_driver_got_command = mysql_driver_got_command;
     db_driver_reduce_replies = mysql_driver_reduce_replies;
+    db_driver_rewrite_command = mysql_driver_rewrite_command;
 
     return 1;
 }

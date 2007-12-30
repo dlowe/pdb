@@ -84,7 +84,7 @@ int log_reopen(void)
     return 1;
 }
 
-void lo(log_level level, char *format, ...)
+void lo(log_level level, const char *format, ...)
 {
     if (level < l.level) {
         return;

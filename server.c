@@ -89,7 +89,7 @@ void server(int fd, struct sockaddr_in *addr)
 
             lo(LOG_DEBUG, "server: waiting for next command...");
             if (read_command(fd, in_command, db_driver_get_packet) == -1) {
-                if (errno != ECONNRESET) {
+                if ((errno != ECONNRESET) && (errno != EINPROGRESS)) {
                     lo(LOG_ERROR, "server: error reading command: %s",
                        strerror(errno));
                 } else {
@@ -102,7 +102,8 @@ void server(int fd, struct sockaddr_in *addr)
             db_driver_got_command(in_command);
 
             lo(LOG_DEBUG, "server: delegating command...");
-            if (!delegate_put(db_driver_put_packet, in_command)) {
+            if (!delegate_put(db_driver_put_packet, db_driver_rewrite_command,
+                              in_command)) {
                 lo(LOG_ERROR, "server: error delegating command");
                 packet_delete(in_command);
                 delegate_disconnect();

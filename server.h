@@ -8,6 +8,11 @@
  * This API implements the basic network-level db-server masquerading logic,
  * i.e. the function server() which handles a single connection from beginning
  * to end.
+ *
+ * The server component should be exclusively used by the main component.
+ *
+ * The server component is aware of the 'delegate' and 'db_driver' components,
+ * and is responsible for the relationship between those two components.
  */
 
 #include <sys/types.h>

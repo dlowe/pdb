@@ -40,7 +40,7 @@ struct component_struct {
  * @param[in] root Root of the component tree.
  * @return 1 on success, 0 on failure
  */
-int component_configure(char *configuration_filename, component *root);
+int component_configure(const char *configuration_filename, component *root);
 
 /**
  * Shut down all components.

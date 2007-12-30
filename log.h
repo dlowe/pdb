@@ -41,6 +41,6 @@ int log_reopen(void);
  * @param[in] format printf-style format
  * @param[in] ... printf-style arguments
  */
-void lo(log_level level, char *format, ...);
+void lo(log_level level, const char *format, ...);
 
 #endif
