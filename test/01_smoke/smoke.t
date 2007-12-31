@@ -32,4 +32,4 @@ eval {
 };
 ok($@, '', "shutdown failed: $@");
 
-ok(`grep ^2 test/pdb.log`, '', "error logs found");
+ok(`grep ^2 test/pdb.log | grep -v 'connecting to a delegate'`, '', "error logs found");

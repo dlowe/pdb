@@ -172,6 +172,11 @@ static packet_status delegate_connect_worker(int delegate_index,
 
 int delegate_connect(void)
 {
+    if (delegate_count == 0) {
+        errno = EINVAL;
+        return -1;
+    }
+
     for (int i = 0; i < delegate_count; ++i) {
         delegates[i].fd = socket(AF_INET, SOCK_STREAM, 0);
         if (delegates[i].fd == -1) {

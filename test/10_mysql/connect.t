@@ -8,34 +8,28 @@ use Socket;
 use DBI;
 use DBD::mysql;
 
-BEGIN { plan tests => 6 }
+BEGIN { plan tests => 1 }
 
-require('test/PDBTest.pm');
+use lib qw(test);
+use MySQLTest;
+use PDBTest;
 
-## XXX: start mysql
+my $port = 2139;
 
-PDBTest::startup();
+PDBTest::startup_with_inline_configuration(<<"ENDCFG");
+log_file = test/pdb.log
+log_level = DEBUG
 
-my $dbh_pdb = DBI->connect("DBI:mysql:database=foo;host=127.0.0.1;port=5032",
-  'root', '');
+listen_port = $port
+
+$MySQLTest::database_configuration
+ENDCFG
+
+my $dbh_pdb = DBI->connect("DBI:mysql:database=irrelevant;host=127.0.0.1;port=$port", 'root', '');
 ok(defined $dbh_pdb);
 
 if (defined $dbh_pdb) {
-    my $row = $dbh_pdb->selectall_arrayref('SELECT DATABASE(),USER()')->[0];
-    ok($row);
-    ok($row->[0] eq 'mysql');
-    ok($row->[1] =~ /^root/);
-
-    ## twice in a row; the second one may hang if LISTFIELDS isn't correctly
-    ## implemented
-    $row = $dbh_pdb->selectall_arrayref("LISTFIELDS user");
-    ok($row);
-    $row = $dbh_pdb->selectall_arrayref("LISTFIELDS user");
-    ok($row);
-
     $dbh_pdb->disconnect();
 }
 
 PDBTest::shutdown();
-
-## XXX: shutdown mysql
