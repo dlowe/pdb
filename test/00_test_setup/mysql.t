@@ -52,4 +52,13 @@ WAIT_FOR_MYSQLD: while (1) {
     last WAIT_FOR_MYSQLD;
 }
 
+foreach my $server (@MySQLTest::servers) {
+    system($MySQLTest::basedir . '/bin/mysql' .
+           ' --user=root' .
+           ' --protocol=tcp' .
+           ' --port=' . $server->{'port'} .
+           ' -B' .
+           ' < ' . $server->{'init'});
+}
+
 ok(1);
