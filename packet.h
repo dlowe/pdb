@@ -40,12 +40,12 @@ typedef enum {
 /**
  * packet reader function type.
  */
-typedef packet_status (*packet_reader)(int, packet *);
+typedef packet_status(*packet_reader) (int, packet *);
 
 /**
  * packet writer function type.
  */
-typedef packet_status (*packet_writer)(int, packet *, int *);
+typedef packet_status(*packet_writer) (int, packet *, int *);
 
 /**
  * Allocate a new packet object.
@@ -60,14 +60,14 @@ packet *packet_new();
  * @param[in] p original packet
  * @return freshly allocated packet, initialized to be identical to original
  */
-packet *packet_copy(packet *p);
+packet *packet_copy(packet * p);
 
 /**
  * Delete a packet
  *
  * @param[in,out] p a packet
  */
-void packet_delete(packet *p);
+void packet_delete(packet * p);
 
 /**
  * Allocate a new packet set.
@@ -84,13 +84,13 @@ packet_set *packet_set_new(int count);
  * @param[in] index the index of the packet to fetch
  * @return pointer to the packet
  */
-packet *packet_set_get(packet_set *p, int index);
+packet *packet_set_get(packet_set * p, int index);
 
 /**
  * Delete a packet set (includes deleting all contained packets!)
  *
  * @param[in,out] p a packet set
  */
-void packet_set_delete(packet_set *p);
+void packet_set_delete(packet_set * p);
 
 #endif

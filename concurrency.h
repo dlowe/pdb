@@ -33,7 +33,8 @@ void concurrency_teardown(void);
  */
 int concurrency_handle_connection(int connection_fd,
                                   struct sockaddr_in *connection_addr,
-                                  void (*handler)(int, struct sockaddr_in *));
+                                  void (*handler) (int,
+                                                   struct sockaddr_in *));
 
 /**
  * Join all children which have finished work, i.e. those which can be

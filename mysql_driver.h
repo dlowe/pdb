@@ -41,7 +41,7 @@ short mysql_driver_expect_replies(void);
  * @param[in,out] p a packet buffer
  * @return the status of the read
  */
-packet_status mysql_driver_get_packet(int fd, packet *p);
+packet_status mysql_driver_get_packet(int fd, packet * p);
 
 /**
  * Write a packet to a file descriptor. This function is intended to be called
@@ -53,14 +53,14 @@ packet_status mysql_driver_get_packet(int fd, packet *p);
  * this to 0 for the first call on a given packet.
  * @return the status of the write
  */
-packet_status mysql_driver_put_packet(int fd, packet *p, int *sent);
+packet_status mysql_driver_put_packet(int fd, packet * p, int *sent);
 
 /**
  * Note the receipt of a command.
  *
  * @param[in] in_command the command received.
  */
-void mysql_driver_got_command(packet *in_command);
+void mysql_driver_got_command(packet * in_command);
 
 /**
  * Reduce a set of replies into a single packet.

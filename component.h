@@ -27,8 +27,8 @@
 
 typedef struct component_struct component;
 struct component_struct {
-    int (*initialize)(cfg_t *);
-    void (*shutdown)(void);
+    int (*initialize) (cfg_t *);
+    void (*shutdown) (void);
     cfg_opt_t *options;
     component **subcomponents;
 };
@@ -40,13 +40,13 @@ struct component_struct {
  * @param[in] root Root of the component tree.
  * @return 1 on success, 0 on failure
  */
-int component_configure(const char *configuration_filename, component *root);
+int component_configure(const char *configuration_filename, component * root);
 
 /**
  * Shut down all components.
  *
  * @param[in] root Root of the component tree.
  */
-void component_unconfigure(component *root);
+void component_unconfigure(component * root);
 
 #endif

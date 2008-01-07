@@ -30,7 +30,7 @@ int delegate_connect(void);
  * @return a list of replies gathered from delegate servers; the caller is
  * responsible for freeing this list!
  */
-packet_set* delegate_get(packet_reader get_packet);
+packet_set *delegate_get(packet_reader get_packet);
 
 /**
  * Parallel write of a packet to a set of delegate servers.
@@ -41,8 +41,8 @@ packet_set* delegate_get(packet_reader get_packet);
  * @return 1 on success, 0 on failure
  */
 int delegate_put(packet_writer put_packet,
-                 int (*rewrite_command)(packet *, packet *, const char *),
-                 packet *command);
+                 int (*rewrite_command) (packet *, packet *, const char *),
+                 packet * command);
 
 /**
  * Disconnect from all delegates.

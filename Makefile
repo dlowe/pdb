@@ -15,7 +15,6 @@ CFLAGS := -std=c99 -Wall -Werror -pedantic -ggdb
 
 FLAWFINDER := /usr/local/bin/flawfinder -DQ -m 3
 GNUINDENT := /opt/local/bin/gnuindent -kr -hnl -nut -ncs -l78 -st
-DOXYGEN := /Applications/Doxygen.app/Contents/Resources/doxygen doxygen.cfg
 
 .DELETE_ON_ERROR %.o: %.c
 	$(CC) -c $(CFLAGS) $(CPPFLAGS) $< -o $@
@@ -32,8 +31,8 @@ DOXYGEN := /Applications/Doxygen.app/Contents/Resources/doxygen doxygen.cfg
 		false; \
 	fi
 
-SOURCES := component.c log.c daemon.c concurrency.c db_driver.c mysql_driver.c packet.c delegate.c server.c pdb.c
-HEADERS := component.h log.h daemon.h concurrency.h db_driver.h mysql_driver.h packet.h delegate.h server.h
+SOURCES := $(wildcard *.c)
+HEADERS := $(wildcard *.h)
 OBJECTS := $(SOURCES:.c=.o)
 
 .PHONY: all all-no-test clean test
@@ -52,6 +51,7 @@ test: pdb
 	prove -r test
 	# gcov $(SOURCES)
 
+DOXYGEN := /Applications/Doxygen.app/Contents/Resources/doxygen doxygen.cfg
 doxygen: $(SOURCES) $(HEADERS) doxygen.cfg
 	rm -rf $@
 	$(DOXYGEN)
@@ -64,6 +64,20 @@ clean:
 	rm -rf *.gcda *.gcno *.gcov
 	rm -rf ktrace.out test/ktrace.out
 	rm -rf pdb.log test/pdb.log
+
+HEADER_STYLE_TARGETS := $(patsubst %,style_%,$(HEADERS))
+.PHONY: $(HEADER_STYLE_TARGETS)
+
+$(HEADER_STYLE_TARGETS): style_%:
+	@DIFF_OUT=`$(GNUINDENT) $* | diff $* -`; \
+        if [ "$${DIFF_OUT}" ]; then \
+            $(GNUINDENT) $* | diff $* -; \
+            echo "style mismatch in $*"; \
+            false; \
+        fi
+
+# force the header style checks
+$(HEADERS): %: style_%
 
 -include dependencies.mk
 
