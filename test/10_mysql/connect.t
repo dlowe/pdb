@@ -31,5 +31,4 @@ ok(defined $dbh_pdb);
 if (defined $dbh_pdb) {
     $dbh_pdb->disconnect();
 }
-
 PDBTest::shutdown();

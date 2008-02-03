@@ -14,9 +14,12 @@
 /* project includes */
 #include "delegate.h"
 #include "log.h"
+#include "map.h"
 #include "packet.h"
+#include "sql.h"
 
 typedef struct {
+    int partition_id;
     int fd;
     short connected;
     int port;
@@ -24,7 +27,13 @@ typedef struct {
     char *name;
 } delegate;
 
+#define MASTER_PARTITION_ID -1
+#define MASTER_PARTITION "master"
+
 #define CFG_DELEGATE "delegate"
+
+#define CFG_PARTITION_ID "partition_id"
+#define CFG_PARTITION_ID_DEFAULT MASTER_PARTITION_ID
 
 #define CFG_HOSTNAME "hostname"
 #define CFG_HOSTNAME_DEFAULT 0
@@ -56,6 +65,8 @@ static int delegate_initialize(cfg_t * configuration)
     for (int i = 0; i < delegate_count; ++i) {
         cfg_t *delegate_config = cfg_getnsec(configuration, CFG_DELEGATE, i);
 
+        delegates[i].partition_id = cfg_getint(delegate_config,
+                                               CFG_PARTITION_ID);
         delegates[i].fd = -1;
         delegates[i].connected = 0;
         delegates[i].port = cfg_getint(delegate_config, CFG_PORT);
@@ -64,6 +75,9 @@ static int delegate_initialize(cfg_t * configuration)
         if (!delegates[i].name) {
             return 0;
         }
+        lo(LOG_DEBUG, "delegate_initialize: %s(%d) at %d:%d",
+           delegates[i].name, delegates[i].partition_id,
+           delegates[i].ip.s_addr, delegates[i].port);
     }
     return 1;
 }
@@ -367,8 +381,21 @@ static int hostname_parser(cfg_t * cfg, cfg_opt_t * opt, const char *value,
     return 0;
 }
 
+static int partition_id_parser(cfg_t * cfg, cfg_opt_t * opt,
+                               const char *value, void *result)
+{
+    if (strncasecmp(value, MASTER_PARTITION, strlen(MASTER_PARTITION)) == 0) {
+        *(int *)result = MASTER_PARTITION_ID;
+    } else {
+        *(int *)result = atoi(value);
+    }
+    return 0;
+}
+
 static cfg_opt_t delegate_options[] = {
     CFG_INT_CB(CFG_HOSTNAME, CFG_HOSTNAME_DEFAULT, 0, hostname_parser),
+    CFG_INT_CB(CFG_PARTITION_ID, CFG_PARTITION_ID_DEFAULT, 0,
+               partition_id_parser),
     CFG_INT(CFG_PORT, CFG_PORT_DEFAULT, 0),
     CFG_STR(CFG_NAME, CFG_NAME_DEFAULT, 0),
     CFG_END()
@@ -379,9 +406,15 @@ static cfg_opt_t options[] = {
     CFG_END()
 };
 
+static component *subcomponents[] = {
+    SUBCOMPONENT(sql),
+    SUBCOMPONENT(map),
+    SUBCOMPONENT_END()
+};
+
 component delegate_component = {
     delegate_initialize,
     delegate_shutdown,
     options,
-    SUBCOMPONENTS_NONE
+    subcomponents
 };
