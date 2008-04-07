@@ -8,7 +8,7 @@ use Socket;
 use DBI;
 use DBD::mysql;
 
-BEGIN { plan tests => 1 }
+BEGIN { plan tests => 7 }
 
 use lib qw(test);
 use MySQLTest;
@@ -29,6 +29,18 @@ my $dbh_pdb = DBI->connect("DBI:mysql:database=irrelevant;host=127.0.0.1;port=$p
 ok(defined $dbh_pdb);
 
 if (defined $dbh_pdb) {
+    my $row = $dbh_pdb->selectall_arrayref('SELECT DATABASE(),USER()')->[0];
+    ok($row);
+    ok($row->[0] eq 'master');
+    ok($row->[1] =~ /^root/);
+
+    $row = $dbh_pdb->selectall_arrayref("LISTFIELDS widget_map");
+    ok($row);
+    $row = $dbh_pdb->selectall_arrayref("LISTFIELDS whatsit");
+    ok($row);
+    $row = $dbh_pdb->selectall_arrayref("LISTFIELDS widget");
+    ok($row);
+
     $dbh_pdb->disconnect();
 }
 PDBTest::shutdown();

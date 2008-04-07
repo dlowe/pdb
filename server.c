@@ -1,6 +1,7 @@
 /* system includes */
 #include <sys/types.h>
 #include <netinet/in.h>
+#include <stdlib.h>
 #include <errno.h>
 #include <string.h>
 #include <unistd.h>
@@ -9,7 +10,9 @@
 #include "db_driver.h"
 #include "delegate.h"
 #include "log.h"
+#include "map.h"
 #include "server.h"
+#include "sql.h"
 
 /**
  * Synchronously send a single reply.
@@ -99,7 +102,32 @@ void server(int fd, struct sockaddr_in *addr)
                 delegate_disconnect();
                 return;
             }
-            db_driver_got_command(in_command);
+
+            switch (db_driver_command(in_command)) {
+            case DB_DRIVER_COMMAND_TYPE_SQL:
+                {
+                    char *sql = db_driver_sql_extract(in_command);
+                    if (!sql) {
+                        lo(LOG_ERROR, "server: error extracting SQL");
+                        packet_delete(in_command);
+                        delegate_disconnect();
+                        return;
+                    }
+
+                    lo(LOG_DEBUG, "server: query '%s'", sql);
+
+                    if (sql_requires_mapping(sql)) {
+                        /* mapping interjection */
+                        //int partition_id = map(sql_key(sql));
+                    }
+                    //db_driver_sql_overwrite(in_command, sql_rewrite(sql));
+
+                    free(sql);
+                    break;
+                }
+            default:
+                break;
+            };
 
             lo(LOG_DEBUG, "server: delegating command...");
             if (!delegate_put(db_driver_put_packet, db_driver_rewrite_command,
@@ -152,6 +180,8 @@ void server(int fd, struct sockaddr_in *addr)
 static component *server_subcomponents[] = {
     SUBCOMPONENT(db_driver),
     SUBCOMPONENT(delegate),
+    SUBCOMPONENT(map),
+    SUBCOMPONENT(sql),
     SUBCOMPONENT_END()
 };
 

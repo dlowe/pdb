@@ -48,5 +48,9 @@ ok($rv == 1);
 $rv = $dbh_pdb->do('update widget set widget_information = \'poot\' where widget_id = 0');
 ok($rv == 0);
 
+## update partitions without specifying key (parallel)
+$rv = $dbh_pdb->do('update widget set widget_information = \'boot\' where widget_information = \'poot\'');
+ok($rv == 2);
+
 $dbh_pdb->disconnect();
 PDBTest::shutdown();

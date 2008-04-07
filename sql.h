@@ -5,11 +5,13 @@
  * @file sql.h
  * @brief SQL parsing
  * 
- * The sql component should be exclusively used by the delegate component.
+ * The sql component should be exclusively used by the server component.
  */
 
 #include "component.h"
 
 DECLARE_COMPONENT(sql);
+
+short sql_requires_mapping(char *sql);
 
 #endif

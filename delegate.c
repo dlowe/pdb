@@ -14,9 +14,7 @@
 /* project includes */
 #include "delegate.h"
 #include "log.h"
-#include "map.h"
 #include "packet.h"
-#include "sql.h"
 
 typedef struct {
     int partition_id;
@@ -406,15 +404,9 @@ static cfg_opt_t options[] = {
     CFG_END()
 };
 
-static component *subcomponents[] = {
-    SUBCOMPONENT(sql),
-    SUBCOMPONENT(map),
-    SUBCOMPONENT_END()
-};
-
 component delegate_component = {
     delegate_initialize,
     delegate_shutdown,
     options,
-    subcomponents
+    SUBCOMPONENTS_NONE
 };

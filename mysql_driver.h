@@ -8,6 +8,7 @@
  * Implements the db_driver interface for mysql.
  */
 
+#include "db_driver.h"
 #include "packet.h"
 
 void mysql_driver_initialize(void);
@@ -59,8 +60,9 @@ packet_status mysql_driver_put_packet(int fd, packet * p, int *sent);
  * Note the receipt of a command.
  *
  * @param[in] in_command the command received.
+ * @return high level command "type"
  */
-void mysql_driver_got_command(packet * in_command);
+db_driver_command_type mysql_driver_command(packet * in_command);
 
 /**
  * Reduce a set of replies into a single packet.
@@ -80,5 +82,7 @@ packet *mysql_driver_reduce_replies(packet_set * replies);
  */
 int mysql_driver_rewrite_command(packet * in, packet * out,
                                  const char *db_name);
+
+char *mysql_driver_sql_extract(packet * in);
 
 #endif

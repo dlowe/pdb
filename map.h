@@ -5,7 +5,7 @@
  * @file map.h
  * @brief partition map
  * 
- * The map component should be exclusively used by the delegate component.
+ * The map component should be exclusively used by the server component.
  */
 
 #include "component.h"

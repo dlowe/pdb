@@ -158,7 +158,7 @@ packet_status mysql_driver_put_packet(int fd, packet * p, int *sent)
     return PACKET_COMPLETE;
 }
 
-void mysql_driver_got_command(packet * in_command)
+db_driver_command_type mysql_driver_command(packet * in_command)
 {
     command_is_client_auth = 0;
     expecting_rows = 0;
@@ -167,13 +167,15 @@ void mysql_driver_got_command(packet * in_command)
     if (waiting_for_client_auth) {
         waiting_for_client_auth = 0;
         command_is_client_auth = 1;
-        return;
+        return DB_DRIVER_COMMAND_TYPE_OTHER;
     }
 
     enum enum_server_command command =
         (enum enum_server_command)(unsigned char)in_command->bytes[4];
     lo(LOG_DEBUG, "mysql_driver_got_command: I've got a %u packet...",
        command);
+
+    db_driver_command_type type = DB_DRIVER_COMMAND_TYPE_OTHER;
 
     /* if we see a QUIT command, don't expect the delegates to respond */
     if (command == COM_QUIT) {
@@ -182,11 +184,10 @@ void mysql_driver_got_command(packet * in_command)
     }
     if (command == COM_QUERY) {
         expecting_rows = 1;
-        lo(LOG_DEBUG, "mysql_driver_got_command: query: %d '%*s'",
-           in_command->size - 5, in_command->size - 5, in_command->bytes + 5);
+        type = DB_DRIVER_COMMAND_TYPE_SQL;
     }
 
-    return;
+    return type;
 }
 
 packet *mysql_driver_reduce_replies(packet_set * replies)
@@ -265,4 +266,14 @@ int mysql_driver_rewrite_command(packet * in, packet * out,
     }
 
     return 1;
+}
+
+char *mysql_driver_sql_extract(packet * in_command)
+{
+    char *sql = malloc(in_command->size - 5 + 1);
+    if (sql) {
+        strncpy(sql, in_command->bytes + 5, in_command->size - 5);
+        sql[in_command->size - 5] = 0;
+    }
+    return sql;
 }

@@ -14,6 +14,11 @@ static int sql_initialize(cfg_t * configuration)
     return 1;
 }
 
+short sql_requires_mapping(char *sql)
+{
+    return 0;
+}
+
 static void sql_shutdown(void)
 {
 }
