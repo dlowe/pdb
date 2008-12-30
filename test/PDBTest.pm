@@ -15,7 +15,7 @@ sub exists () {
 
 sub startup_with_args ($) {
     my $args = shift;
-    my $output = `ktrace -f test/ktrace.out -a -i $pdb $args 2>&1`;
+    my $output = `$pdb $args 2>&1`;
     die $output if $output ne '';
     return pid();
 }

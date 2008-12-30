@@ -138,7 +138,7 @@ int main(int argc, char **argv)
 
     struct sockaddr_in bind_addr;
     bind_addr.sin_family = AF_INET;
-    bind_addr.sin_port = listen_port;
+    bind_addr.sin_port = htons(listen_port);
     bind_addr.sin_addr.s_addr = INADDR_ANY;
     if (bind(socket_fd, (struct sockaddr *)&bind_addr,
              sizeof(bind_addr)) == -1) {

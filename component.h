@@ -12,7 +12,7 @@
  */
 
 /* 3rd party includes */
-#include <confuse.h>
+#include "confuse.h"
 
 /** A component declares itself (in its header) via this macro. */
 #define DECLARE_COMPONENT(name) extern component name ## _component

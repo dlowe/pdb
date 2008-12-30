@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 /* 3rd party includes */
-#include <confuse.h>
+#include "confuse.h"
 
 /* project includes */
 #include "component.h"

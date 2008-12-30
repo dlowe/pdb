@@ -8,9 +8,10 @@ BEGIN { plan tests => 1 }
 
 use lib qw(test);
 use MySQLTest ();
+use Data::Dumper ();
 
 foreach my $server (@MySQLTest::servers) {
-    print "$server\n";
+    print Data::Dumper::Dumper($server) . "\n";
     if (-d $server->{'dir'}) {
         ok(0);
         exit;
@@ -19,8 +20,8 @@ foreach my $server (@MySQLTest::servers) {
         ok(0);
         exit;
     }
-    system($MySQLTest::basedir . '/scripts/mysql_install_db' .
-           ' --basedir=' . $MySQLTest::basedir .
+    system($MySQLTest::basedir . '/bin/mysql_install_db5' .
+           # ' --basedir=' . $MySQLTest::basedir .
            ' --datadir=' . $server->{'dir'} .
            ' 2>/dev/null');
     my $pid = fork();
@@ -32,7 +33,8 @@ foreach my $server (@MySQLTest::servers) {
         close(STDOUT);
         close(STDERR);
         close(STDIN);
-        system($MySQLTest::basedir . '/bin/mysqld' .
+        system($MySQLTest::basedir . '/libexec/mysqld' .
+               # ' --basedir=' . $MySQLTest::basedir .
                ' --datadir=' . $server->{'dir'} .
                ' --port=' . $server->{'port'} .
                ' --socket=' . $server->{'dir'} . $MySQLTest::socket_file .
@@ -53,7 +55,8 @@ WAIT_FOR_MYSQLD: while (1) {
 }
 
 foreach my $server (@MySQLTest::servers) {
-    system($MySQLTest::basedir . '/bin/mysql' .
+    system($MySQLTest::basedir . '/bin/mysql5' .
+           # ' --basedir=' . $MySQLTest::basedir .
            ' --user=root' .
            ' --protocol=tcp' .
            ' --port=' . $server->{'port'} .

@@ -5,7 +5,7 @@ package MySQLTest;
 use strict;
 use warnings;
 
-our $basedir = '/usr/local/mysql';
+our $basedir = '/opt/local/';
 our $socket_file = '/socket';
 our $pid_file = '/pid';
 

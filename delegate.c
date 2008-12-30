@@ -205,7 +205,7 @@ int delegate_connect(void)
         struct sockaddr_in connect_addr;
 
         connect_addr.sin_family = AF_INET;
-        connect_addr.sin_port = delegates[i].port;
+        connect_addr.sin_port = htons(delegates[i].port);
         connect_addr.sin_addr = delegates[i].ip;
 
         lo(LOG_DEBUG, "delegate_connect: starting connection to %s:%d",
