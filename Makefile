@@ -10,10 +10,10 @@
 #   libconfuse version 2.5
 
 CC := gcc
-CFLAGS := -std=c99 -Wall -Werror -pedantic -ggdb
+CFLAGS := -std=c99 -Wall -Werror -pedantic -ggdb -I/opt/local/include
 # CFLAGS := -fprofile-arcs -ftest-coverage -std=c99 -Wall -Werror -pedantic -ggdb
 
-FLAWFINDER := /usr/local/bin/flawfinder -DQ -m 3
+FLAWFINDER := /opt/local/bin/flawfinder -DQ -m 3
 GNUINDENT := /opt/local/bin/gnuindent -kr -hnl -nut -ncs -l78 -st
 
 .DELETE_ON_ERROR %.o: %.c
@@ -42,7 +42,7 @@ all: all-no-test test
 all-no-test: pdb doxygen
 
 pdb: $(OBJECTS)
-	$(CC) -o $@ $(OBJECTS) -lconfuse
+	$(CC) -o $@ $(OBJECTS) -L/opt/local/lib -lconfuse -lintl
 	# $(CC) -o $@ $(OBJECTS) -lgcov
 
 test: pdb
@@ -82,4 +82,4 @@ $(HEADERS): %: style_%
 -include dependencies.mk
 
 dependencies.mk: $(SOURCES) $(HEADERS)
-	$(CC) -MM $(SOURCES) > dependencies.mk
+	$(CC) $(CFLAGS) -MM $(SOURCES) > dependencies.mk
