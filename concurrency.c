@@ -44,10 +44,6 @@ int concurrency_handle_connection(int connection_fd,
         lo(LOG_DEBUG, "concurrency_handle_connection: handling connection on "
            "fd %d", connection_fd);
 
-        //lo(LOG_DEBUG, "pdb: sleeping (%d)", getpid());
-        //sleep(10);
-        //lo(LOG_DEBUG, "pdb: awake!");
-
         handler(connection_fd, connection_addr);
         shutdown(connection_fd, SHUT_RDWR);
         close(connection_fd);

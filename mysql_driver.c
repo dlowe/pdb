@@ -234,22 +234,21 @@ db_driver_command_type mysql_driver_command(packet * in_command)
 
 short mysql_driver_delegate_filter(delegate_id id)
 {
-    lo(LOG_DEBUG, "mysql_driver_delegate_filter(%hu): %d", id,
-       delegate_states[id].expect_replies);
     return (delegate_states[id].expect_replies == REP_NONE);
 }
 
 void mysql_driver_reply(delegate_id id, packet * p)
 {
     if ((unsigned char)(p->bytes[4]) == 0xff) {
-        lo(LOG_ERROR, "mysql_driver_reply(%hu): ERROR!!", id);
-
         char *error = malloc(p->size - 7 + 1);
         if (error) {
             strncpy(error, p->bytes + 7, p->size - 7);
             error[p->size - 7] = 0;
-            lo(LOG_ERROR, "mysql_driver_reply(%hu): %s", id, error);
+            lo(LOG_ERROR, "mysql_driver_reply(%hu): ERROR: %s", id, error);
         }
+
+        /* XXX: failure to handle errors correctly currently is causing server
+           to hang on error cases... */
     }
 
     switch (delegate_states[id].expect_replies) {

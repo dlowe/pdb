@@ -117,7 +117,6 @@ static int delegate_io(short event,
     int pending = 0;
     for (delegate_id i = 0; i < delegate_count; ++i) {
         if ((filter == NULL) || (!filter(i))) {
-            lo(LOG_DEBUG, "delegate_io: not skipping %hu", i);
             ++pending;
             info[i].pending = 1;
             info[i].poll_index = -1;
@@ -135,7 +134,6 @@ static int delegate_io(short event,
 
         for (delegate_id i = 0, j = 0; i < delegate_count; ++i) {
             if (info[i].pending) {
-                lo(LOG_DEBUG, "delegate_io: adding %hu to poll as %hu", i, j);
                 pending_poll[j].fd = delegates[i].fd;
                 pending_poll[j].events = event;
                 pending_poll[j].revents = 0;
@@ -144,7 +142,6 @@ static int delegate_io(short event,
             }
         }
 
-        lo(LOG_DEBUG, "delegate_io: polling...");
         if (poll(pending_poll, pending, -1) <= 0) {
             free(pending_poll);
             free(info);
@@ -154,7 +151,6 @@ static int delegate_io(short event,
         for (delegate_id i = 0; i < delegate_count; ++i) {
             if (info[i].pending) {
                 if (pending_poll[info[i].poll_index].revents & event) {
-                    lo(LOG_DEBUG, "delegate_io: calling worker for %hu", i);
                     switch (worker(i, worker_args)) {
                     case PACKET_ERROR:
                     case PACKET_EOF:
