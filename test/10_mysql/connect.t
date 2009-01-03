@@ -3,12 +3,10 @@
 use strict;
 use warnings;
 
-use Test;
+use Test::More qw(no_plan);
 use Socket;
 use DBI;
 use DBD::mysql;
-
-BEGIN { plan tests => 7 }
 
 use lib qw(test);
 use MySQLTest;
@@ -38,8 +36,8 @@ if (defined $dbh_pdb) {
     ok($row);
     $row = $dbh_pdb->selectall_arrayref("LISTFIELDS whatsit");
     ok($row);
-    $row = $dbh_pdb->selectall_arrayref("LISTFIELDS widget");
-    ok($row);
+    # $row = $dbh_pdb->selectall_arrayref("LISTFIELDS widget");
+    # ok($row);
 
     $dbh_pdb->disconnect();
 }

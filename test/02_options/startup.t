@@ -3,10 +3,8 @@
 use strict;
 use warnings;
 
-use Test;
+use Test::More qw(no_plan);
 use Socket;
-
-BEGIN { plan tests => 2 }
 
 require('test/PDBTest.pm');
 
@@ -17,11 +15,11 @@ eval {
 
     PDBTest::shutdown();
 };
-ok($@, qr/usage/, "pdb booted with no arguments") or die;
+like($@, qr/usage/, "pdb booted with no arguments") or die;
 
 eval {
     $pid = PDBTest::startup_with_args("-c test/nonexistent.cfg");
 
     PDBTest::shutdown();
 };
-ok($@, qr/error/, "pdb booted against nonexistent configuration file") or die;
+like($@, qr/error/, "pdb booted against nonexistent configuration file") or die;

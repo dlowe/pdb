@@ -13,6 +13,7 @@
 
 #include "packet.h"
 #include "component.h"
+#include "delegate_id.h"
 
 DECLARE_COMPONENT(delegate);
 
@@ -23,6 +24,8 @@ DECLARE_COMPONENT(delegate);
  */
 int delegate_connect(void);
 
+delegate_id delegate_max(void);
+
 /**
  * Parallel read of a set of packets from a set of delegate servers.
  *
@@ -30,7 +33,9 @@ int delegate_connect(void);
  * @return a list of replies gathered from delegate servers; the caller is
  * responsible for freeing this list!
  */
-packet_set *delegate_get(packet_reader get_packet);
+packet_set *delegate_get(delegate_filter filter,
+                         packet_reader get_packet,
+                         void (*register_reply) (delegate_id, packet *));
 
 /**
  * Parallel write of a packet to a set of delegate servers.

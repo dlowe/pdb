@@ -29,7 +29,6 @@ enum enum_server_command {
 static short done;
 static short waiting_for_client_auth;
 static short command_is_client_auth;
-static short expecting_rows;
 
 enum expect_reply_state {
     REP_NONE,
@@ -37,15 +36,32 @@ enum expect_reply_state {
     REP_SIMPLE,
     REP_TABLE_FIELDS,
     REP_TABLE_ROWS
-} expect_replies;
+};
 
-void mysql_driver_initialize(void)
+typedef struct {
+    short expecting_rows;
+    enum expect_reply_state expect_replies;
+} delegate_state;
+delegate_state *delegate_states;
+delegate_id delegate_states_count;
+
+short mysql_driver_initialize(delegate_id max_delegate_id)
 {
     done = 0;
-    expect_replies = REP_GREETING;
     waiting_for_client_auth = 0;
     command_is_client_auth = 0;
-    expecting_rows = 0;
+
+    delegate_states = malloc(sizeof(delegate_state) * (max_delegate_id + 1));
+    if (!delegate_states) {
+        return 0;
+    }
+
+    delegate_states_count = max_delegate_id + 1;
+    for (delegate_id i = 0; i < delegate_states_count; ++i) {
+        delegate_states[i].expecting_rows = 0;
+        delegate_states[i].expect_replies = REP_GREETING;
+    }
+    return 1;
 }
 
 short mysql_driver_done(void)
@@ -55,12 +71,24 @@ short mysql_driver_done(void)
 
 short mysql_driver_expect_replies(void)
 {
-    return (!done) && (expect_replies != REP_NONE);
+    if (!done) {
+        for (delegate_id i = 0; i < delegate_states_count; ++i) {
+            if (delegate_states[i].expect_replies != REP_NONE)
+                return 1;
+        }
+    }
+    return 0;
 }
 
 short mysql_driver_expect_commands(void)
 {
-    return (!done) && (expect_replies == REP_NONE);
+    if (!done) {
+        for (delegate_id i = 0; i < delegate_states_count; ++i) {
+            if (delegate_states[i].expect_replies == REP_NONE)
+                return 1;
+        }
+    }
+    return 0;
 }
 
 packet_status mysql_driver_get_packet(int fd, packet * p)
@@ -161,8 +189,11 @@ packet_status mysql_driver_put_packet(int fd, packet * p, int *sent)
 db_driver_command_type mysql_driver_command(packet * in_command)
 {
     command_is_client_auth = 0;
-    expecting_rows = 0;
-    expect_replies = REP_SIMPLE;
+
+    for (delegate_id i = 0; i < delegate_states_count; ++i) {
+        delegate_states[i].expecting_rows = 0;
+        delegate_states[i].expect_replies = REP_SIMPLE;
+    }
 
     if (waiting_for_client_auth) {
         waiting_for_client_auth = 0;
@@ -172,64 +203,94 @@ db_driver_command_type mysql_driver_command(packet * in_command)
 
     enum enum_server_command command =
         (enum enum_server_command)(unsigned char)in_command->bytes[4];
-    lo(LOG_DEBUG, "mysql_driver_got_command: I've got a %u packet...",
-       command);
+    lo(LOG_DEBUG, "mysql_driver_command: I've got a %u packet...", command);
 
     db_driver_command_type type = DB_DRIVER_COMMAND_TYPE_OTHER;
 
     /* if we see a QUIT command, don't expect the delegates to respond */
     if (command == COM_QUIT) {
-        expect_replies = REP_NONE;
+        for (delegate_id i = 0; i < delegate_states_count; ++i) {
+            delegate_states[i].expect_replies = REP_NONE;
+        }
         done = 1;
+    } else {
+        lo(LOG_DEBUG, "mysql_driver_command(*): REP_NONE -> REP_SIMPLE");
     }
+
     if (command == COM_QUERY) {
-        expecting_rows = 1;
+        for (delegate_id i = 0; i < delegate_states_count; ++i) {
+            delegate_states[i].expecting_rows = 1;
+        }
         type = DB_DRIVER_COMMAND_TYPE_SQL;
     }
 
     return type;
 }
 
-packet *mysql_driver_reduce_replies(packet_set * replies)
+short mysql_driver_delegate_filter(delegate_id id)
 {
-    packet *p = packet_copy(packet_set_get(replies, 0));
+    lo(LOG_DEBUG, "mysql_driver_delegate_filter(%hu): %d", id,
+       delegate_states[id].expect_replies);
+    return (delegate_states[id].expect_replies == REP_NONE);
+}
 
-    switch (expect_replies) {
+void mysql_driver_reply(delegate_id id, packet * p)
+{
+    switch (delegate_states[id].expect_replies) {
     case REP_GREETING:
         waiting_for_client_auth = 1;
-        expect_replies = REP_NONE;
+        lo(LOG_DEBUG, "mysql_driver_reply(%hu): REP_GREETING -> REP_NONE",
+           id);
+        delegate_states[id].expect_replies = REP_NONE;
         break;
     case REP_SIMPLE:
         if (p->bytes[4] == 0) {
-            expect_replies = REP_NONE;
+            lo(LOG_DEBUG, "mysql_driver_reply(%hu): REP_SIMPLE -> REP_NONE",
+               id);
+            delegate_states[id].expect_replies = REP_NONE;
         } else {
-            expect_replies = REP_TABLE_FIELDS;
+            lo(LOG_DEBUG,
+               "mysql_driver_reply(%hu): REP_SIMPLE -> REP_TABLE_FIELDS", id);
+            delegate_states[id].expect_replies = REP_TABLE_FIELDS;
         }
         break;
     case REP_TABLE_FIELDS:
         if ((unsigned char)(p->bytes[4]) == 0xfe) {
-            if (expecting_rows) {
-                expect_replies = REP_TABLE_ROWS;
+            if (delegate_states[id].expecting_rows) {
+                lo(LOG_DEBUG,
+                   "mysql_driver_reply(%hu): REP_TABLE_FIELDS "
+                   "-> REP_TABLE_ROWS", id);
+                delegate_states[id].expect_replies = REP_TABLE_ROWS;
             } else {
-                expect_replies = REP_NONE;
+                lo(LOG_DEBUG,
+                   "mysql_driver_reply(%hu): REP_TABLE_FIELDS -> REP_NONE",
+                   id);
+                delegate_states[id].expect_replies = REP_NONE;
             }
         } else {
-            lo(LOG_DEBUG, "mysql_driver_reduce_replies: field");
+            lo(LOG_DEBUG, "mysql_driver_reply(%hu): field", id);
         }
         break;
     case REP_TABLE_ROWS:
         if ((unsigned char)(p->bytes[4]) == 0xfe) {
-            expect_replies = REP_NONE;
+            lo(LOG_DEBUG,
+               "mysql_driver_reply(%hu): REP_TABLE_ROWS -> REP_NONE", id);
+            delegate_states[id].expect_replies = REP_NONE;
         } else {
-            lo(LOG_DEBUG, "mysql_driver_reduce_replies: row");
+            lo(LOG_DEBUG, "mysql_driver_reply(%hu): row", id);
         }
         break;
     case REP_NONE:
-        lo(LOG_ERROR, "mysql_driver_reduce_replies: I wasn't expecting"
-           "any replies!");
-        return 0;
+        lo(LOG_ERROR, "mysql_driver_reply(%hu): I wasn't expecting"
+           "any replies!", id);
+        break;
     };
-    return p;
+}
+
+packet *mysql_driver_reduce_replies(packet_set * replies)
+{
+    lo(LOG_DEBUG, "mysql_driver_reduce_replies: hack hack hack");
+    return packet_copy(packet_set_get(replies, 0));
 }
 
 static void edit_packet_length(packet * p)

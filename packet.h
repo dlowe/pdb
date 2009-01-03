@@ -1,6 +1,8 @@
 #ifndef __PACKET_H
 #define __PACKET_H
 
+#include "delegate_id.h"
+
 /**
  * @file packet.h
  * @brief functions for working with logical communication packets
@@ -75,7 +77,7 @@ void packet_delete(packet * p);
  * @param[in] count the number of packets to be contained in the set.
  * @return freshly allocated packet set of 'count' empty packets
  */
-packet_set *packet_set_new(int count);
+packet_set *packet_set_new(delegate_id delegate_count);
 
 /**
  * Fetch a packet out of a set.
@@ -84,7 +86,7 @@ packet_set *packet_set_new(int count);
  * @param[in] index the index of the packet to fetch
  * @return pointer to the packet
  */
-packet *packet_set_get(packet_set * p, int index);
+packet *packet_set_get(packet_set * p, delegate_id index);
 
 /**
  * Delete a packet set (includes deleting all contained packets!)

@@ -3,8 +3,7 @@
 use strict;
 use warnings;
 
-use Test;
-BEGIN { plan tests => 1 }
+use Test::More qw(no_plan);
 
 use lib qw(test);
 use MySQLTest ();

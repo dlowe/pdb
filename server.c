@@ -70,7 +70,10 @@ static int read_command(int fd, packet * p, packet_reader get_packet)
 
 void server(int fd, struct sockaddr_in *addr)
 {
-    db_driver_initialize();
+    if (!db_driver_initialize(delegate_max())) {
+        lo(LOG_ERROR, "server: error initializing database driver");
+        return;
+    }
 
     /* establish network-level connections to all delegate databases */
     if (delegate_connect() == -1) {
@@ -145,7 +148,9 @@ void server(int fd, struct sockaddr_in *addr)
         while (db_driver_expect_replies()) {
             lo(LOG_DEBUG, "server: waiting for reply...");
 
-            packet_set *replies = delegate_get(db_driver_get_packet);
+            packet_set *replies = delegate_get(db_driver_delegate_filter,
+                                               db_driver_get_packet,
+                                               db_driver_reply);
             if (!replies) {
                 lo(LOG_ERROR, "server: error getting delegate replies");
                 delegate_disconnect();

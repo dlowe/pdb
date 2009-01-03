@@ -66,7 +66,7 @@ void packet_delete(packet * p)
     }
 }
 
-packet_set *packet_set_new(int count)
+packet_set *packet_set_new(delegate_id count)
 {
     packet_set *p = malloc(sizeof(packet_set));
     if (!p) {
@@ -85,7 +85,7 @@ packet_set *packet_set_new(int count)
     return p;
 }
 
-packet *packet_set_get(packet_set * p, int index)
+packet *packet_set_get(packet_set * p, delegate_id index)
 {
     return &p->packets[index];
 }

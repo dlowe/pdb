@@ -23,6 +23,7 @@ typedef struct {
     int port;
     struct in_addr ip;
     char *name;
+    void *driver_state;
 } delegate;
 
 #define MASTER_PARTITION_ID -1
@@ -60,7 +61,7 @@ static int delegate_initialize(cfg_t * configuration)
         return 0;
     }
 
-    for (int i = 0; i < delegate_count; ++i) {
+    for (delegate_id i = 0; i < delegate_count; ++i) {
         cfg_t *delegate_config = cfg_getnsec(configuration, CFG_DELEGATE, i);
 
         delegates[i].partition_id = cfg_getint(delegate_config,
@@ -78,6 +79,11 @@ static int delegate_initialize(cfg_t * configuration)
            delegates[i].ip.s_addr, delegates[i].port);
     }
     return 1;
+}
+
+delegate_id delegate_max(void)
+{
+    return delegate_count - 1;
 }
 
 /**
@@ -98,8 +104,9 @@ typedef struct {
  * @param[in,out] worker_args extra arguments to the worker function
  * @return 0 on failure, 1 on success
  */
-static int delegate_io(short event, packet_status(*worker) (int, void *),
-                       void *worker_args)
+static int delegate_io(short event,
+                       packet_status(*worker) (delegate_id, void *),
+                       void *worker_args, delegate_filter filter)
 {
     delegate_io_info *info =
         malloc(sizeof(delegate_io_info) * delegate_count);
@@ -107,10 +114,16 @@ static int delegate_io(short event, packet_status(*worker) (int, void *),
         return 0;
     }
 
-    int pending = delegate_count;
-    for (int i = 0; i < delegate_count; ++i) {
-        info[i].pending = 1;
-        info[i].poll_index = -1;
+    int pending = 0;
+    for (delegate_id i = 0; i < delegate_count; ++i) {
+        if ((filter == NULL) || (!filter(i))) {
+            lo(LOG_DEBUG, "delegate_io: not skipping %hu", i);
+            ++pending;
+            info[i].pending = 1;
+            info[i].poll_index = -1;
+        } else {
+            info[i].pending = 0;
+        }
     }
 
     while (pending > 0) {
@@ -120,8 +133,9 @@ static int delegate_io(short event, packet_status(*worker) (int, void *),
             return 0;
         }
 
-        for (int i = 0, j = 0; i < delegate_count; ++i) {
+        for (delegate_id i = 0, j = 0; i < delegate_count; ++i) {
             if (info[i].pending) {
+                lo(LOG_DEBUG, "delegate_io: adding %hu to poll as %hu", i, j);
                 pending_poll[j].fd = delegates[i].fd;
                 pending_poll[j].events = event;
                 pending_poll[j].revents = 0;
@@ -130,15 +144,17 @@ static int delegate_io(short event, packet_status(*worker) (int, void *),
             }
         }
 
+        lo(LOG_DEBUG, "delegate_io: polling...");
         if (poll(pending_poll, pending, -1) <= 0) {
             free(pending_poll);
             free(info);
             return 0;
         }
 
-        for (int i = 0; i < delegate_count; ++i) {
+        for (delegate_id i = 0; i < delegate_count; ++i) {
             if (info[i].pending) {
                 if (pending_poll[info[i].poll_index].revents & event) {
+                    lo(LOG_DEBUG, "delegate_io: calling worker for %hu", i);
                     switch (worker(i, worker_args)) {
                     case PACKET_ERROR:
                     case PACKET_EOF:
@@ -170,7 +186,7 @@ static int delegate_io(short event, packet_status(*worker) (int, void *),
  * @param void_args unused
  * @return PACKET_COMPLETE
  */
-static packet_status delegate_connect_worker(int delegate_index,
+static packet_status delegate_connect_worker(delegate_id delegate_index,
                                              void *void_args)
 {
     /* The connect() has already been issued; this function will only be
@@ -189,7 +205,7 @@ int delegate_connect(void)
         return -1;
     }
 
-    for (int i = 0; i < delegate_count; ++i) {
+    for (delegate_id i = 0; i < delegate_count; ++i) {
         delegates[i].fd = socket(AF_INET, SOCK_STREAM, 0);
         if (delegates[i].fd == -1) {
             delegate_disconnect();
@@ -223,7 +239,7 @@ int delegate_connect(void)
     }
 
     /* Block until all delegates are connected */
-    if (!delegate_io(POLLOUT, delegate_connect_worker, 0)) {
+    if (!delegate_io(POLLOUT, delegate_connect_worker, 0, NULL)) {
         delegate_disconnect();
         return -1;
     }
@@ -233,7 +249,7 @@ int delegate_connect(void)
 
 void delegate_disconnect(void)
 {
-    for (int i = 0; i < delegate_count; ++i) {
+    for (delegate_id i = 0; i < delegate_count; ++i) {
         if (delegates[i].fd > 0) {
             if (delegates[i].connected) {
                 shutdown(delegates[i].fd, SHUT_RDWR);
@@ -251,6 +267,7 @@ void delegate_disconnect(void)
 typedef struct {
     packet_set *replies;
     packet_reader get_packet;
+    void (*register_reply) (delegate_id, packet *);
 } gather_replies_worker_args;
 
 /**
@@ -260,16 +277,24 @@ typedef struct {
  * @param void_args arguments as a void pointer
  * @return status of the operation
  */
-static packet_status gather_replies_worker(int delegate_index,
+static packet_status gather_replies_worker(delegate_id delegate_index,
                                            void *void_args)
 {
     gather_replies_worker_args *args =
         (gather_replies_worker_args *) void_args;
-    return args->get_packet(delegates[delegate_index].fd,
-                            packet_set_get(args->replies, delegate_index));
+    packet_status s = args->get_packet(delegates[delegate_index].fd,
+                                       packet_set_get(args->replies,
+                                                      delegate_index));
+    if (s == PACKET_COMPLETE) {
+        args->register_reply(delegate_index,
+                             packet_set_get(args->replies, delegate_index));
+    }
+    return s;
 }
 
-packet_set *delegate_get(packet_reader get_packet)
+packet_set *delegate_get(delegate_filter filter,
+                         packet_reader get_packet,
+                         void (*register_reply) (delegate_id, packet *))
 {
     packet_set *replies = packet_set_new(delegate_count);
     if (!replies) {
@@ -280,7 +305,8 @@ packet_set *delegate_get(packet_reader get_packet)
     gather_replies_worker_args args;
     args.replies = replies;
     args.get_packet = get_packet;
-    if (delegate_io(POLLIN, gather_replies_worker, &args) == 0) {
+    args.register_reply = register_reply;
+    if (delegate_io(POLLIN, gather_replies_worker, &args, filter) == 0) {
         return 0;
     }
 
@@ -303,7 +329,8 @@ typedef struct {
  * @param void_args arguments, cast as a void pointer
  * @return status of the current write
  */
-static packet_status proxy_command_worker(int delegate_index, void *void_args)
+static packet_status proxy_command_worker(delegate_id delegate_index,
+                                          void *void_args)
 {
     proxy_command_worker_args *args = (proxy_command_worker_args *) void_args;
     return args->put_packet(delegates[delegate_index].fd,
@@ -326,7 +353,7 @@ int delegate_put(packet_writer put_packet,
         return 0;
     }
 
-    for (int i = 0; i < delegate_count; ++i) {
+    for (delegate_id i = 0; i < delegate_count; ++i) {
         if (!rewrite_command(command, packet_set_get(commands, i),
                              delegates[i].name)) {
             packet_set_delete(commands);
@@ -341,7 +368,7 @@ int delegate_put(packet_writer put_packet,
     args.sent_list = sent_list;
     args.put_packet = put_packet;
     args.commands = commands;
-    if (!delegate_io(POLLOUT, proxy_command_worker, &args)) {
+    if (!delegate_io(POLLOUT, proxy_command_worker, &args, NULL)) {
         packet_set_delete(commands);
         free(sent_list);
         return 0;
@@ -355,7 +382,7 @@ int delegate_put(packet_writer put_packet,
 static void delegate_shutdown(void)
 {
     if (delegates) {
-        for (int i = 0; i < delegate_count; ++i) {
+        for (delegate_id i = 0; i < delegate_count; ++i) {
             if (delegates[i].name) {
                 free(delegates[i].name);
                 delegates[i].name = 0;

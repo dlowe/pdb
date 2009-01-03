@@ -10,8 +10,9 @@
 
 #include "db_driver.h"
 #include "packet.h"
+#include "delegate_id.h"
 
-void mysql_driver_initialize(void);
+short mysql_driver_initialize(delegate_id max_delegate_id);
 
 /**
  * Is the current connection ready to close?
@@ -33,6 +34,8 @@ short mysql_driver_expect_commands(void);
  * @return 1 if we're expecting a reply; 0 otherwise.
  */
 short mysql_driver_expect_replies(void);
+
+short mysql_driver_delegate_filter(delegate_id id);
 
 /**
  * Read the next packet from a file descriptor. This function is intended
@@ -63,6 +66,8 @@ packet_status mysql_driver_put_packet(int fd, packet * p, int *sent);
  * @return high level command "type"
  */
 db_driver_command_type mysql_driver_command(packet * in_command);
+
+void mysql_driver_reply(delegate_id id, packet * in_reply);
 
 /**
  * Reduce a set of replies into a single packet.

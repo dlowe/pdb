@@ -3,10 +3,8 @@
 use strict;
 use warnings;
 
-use Test;
+use Test::More qw(no_plan);
 use Socket;
-
-BEGIN { plan tests => 14 }
 
 require('test/PDBTest.pm');
 
@@ -20,7 +18,7 @@ ENDCFG
 
     PDBTest::shutdown();
 };
-ok($@, '', "test failed: $@");
+ok($@ eq '', "test failed: $@");
 ok(not -e "test/none.log");
 unlink('test/none.log');
 
@@ -30,7 +28,7 @@ eval {
     my $pid = PDBTest::startup_with_inline_configuration('');
     PDBTest::shutdown();
 };
-ok($@, '', "test failed: $@");
+ok($@ eq '', "test failed: $@");
 ok(-e 'pdb.log');
 unlink('pdb.log');
 
@@ -44,9 +42,9 @@ ENDCFG
 
     PDBTest::shutdown();
 };
-ok($@, '', "test failed: $@");
+ok($@ eq '', "test failed: $@");
 ok(-e 'test/debug.log');
-ok(`cat test/debug.log`, qr/^0 /, "no debug logs found");
+like(`cat test/debug.log`, qr/^0 /, "no debug logs found");
 unlink('test/debug.log');
 
 eval {
@@ -58,10 +56,10 @@ ENDCFG
 
     PDBTest::shutdown();
 };
-ok($@, '', "test failed: $@");
+ok($@ eq '', "test failed: $@");
 ok(-e 'test/info.log');
-ok(`cat test/info.log`, qr/^1 /, "no info logs found");
-ok(`grep ^0 test/info.log`, '', "debug logs found");
+like(`cat test/info.log`, qr/^1 /, "no info logs found");
+ok(`grep ^0 test/info.log` eq '', "debug logs found");
 unlink('test/info.log');
 
 eval {
@@ -73,7 +71,7 @@ ENDCFG
 
     PDBTest::shutdown();
 };
-ok($@, '', "test failed: $@");
+ok($@ eq '', "test failed: $@");
 ok(-e 'test/error.log');
 ok(-z 'test/error.log');
 unlink('test/error.log');
