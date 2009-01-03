@@ -114,8 +114,13 @@ packet_status mysql_driver_get_packet(int fd, packet * p)
         }
         p->size += len;
         if (p->size == HEADER_SIZE) {
+            long packet_length =
+                ((unsigned char)p->bytes[0]) +
+                ((unsigned char)p->bytes[1] << 8) +
+                ((unsigned char)p->bytes[2] << 16);
             lo(LOG_DEBUG, "mysql_driver_get_packet: read header for packet "
-               "number %d", p->bytes[3]);
+               "number %d, expected to be %ld bytes", p->bytes[3],
+               packet_length);
         }
         return PACKET_INCOMPLETE;
     }
@@ -236,6 +241,17 @@ short mysql_driver_delegate_filter(delegate_id id)
 
 void mysql_driver_reply(delegate_id id, packet * p)
 {
+    if ((unsigned char)(p->bytes[4]) == 0xff) {
+        lo(LOG_ERROR, "mysql_driver_reply(%hu): ERROR!!", id);
+
+        char *error = malloc(p->size - 7 + 1);
+        if (error) {
+            strncpy(error, p->bytes + 7, p->size - 7);
+            error[p->size - 7] = 0;
+            lo(LOG_ERROR, "mysql_driver_reply(%hu): %s", id, error);
+        }
+    }
+
     switch (delegate_states[id].expect_replies) {
     case REP_GREETING:
         waiting_for_client_auth = 1;

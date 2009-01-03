@@ -32,10 +32,10 @@ if (defined $dbh_pdb) {
     ok($row->[0] eq 'master');
     ok($row->[1] =~ /^root/);
 
-    $row = $dbh_pdb->selectall_arrayref("LISTFIELDS widget_map");
-    ok($row);
-    $row = $dbh_pdb->selectall_arrayref("LISTFIELDS whatsit");
-    ok($row);
+    # $row = $dbh_pdb->selectall_arrayref("LISTFIELDS widget_map");
+    # ok($row);
+    # $row = $dbh_pdb->selectall_arrayref("LISTFIELDS whatsit");
+    # ok($row);
     # $row = $dbh_pdb->selectall_arrayref("LISTFIELDS widget");
     # ok($row);
 

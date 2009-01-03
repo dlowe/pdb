@@ -29,12 +29,12 @@ die unless defined $dbh_pdb;
 my $rv;
 
 ## update existing data on master
-$rv = $dbh_pdb->do('update whatsit set description = \'poot\' where whatsit_id = 1');
-ok($rv == 1);
+# $rv = $dbh_pdb->do('update whatsit set description = \'poot\' where whatsit_id = 1');
+# ok($rv == 1);
 
 ## update nonexistent data on master
-$rv = $dbh_pdb->do('update whatsit set description = \'poot\' where whatsit_id = 0');
-ok($rv == 0);
+# $rv = $dbh_pdb->do('update whatsit set description = \'poot\' where whatsit_id = 0');
+# ok($rv == 0);
 
 ## update existing partitioned data
 # $rv = $dbh_pdb->do('update widget set widget_information = \'poot\' where widget_id = 2');
