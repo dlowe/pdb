@@ -263,7 +263,6 @@ void delegate_disconnect(void)
 typedef struct {
     packet_set *replies;
     packet_reader get_packet;
-    void (*register_reply) (delegate_id, packet *);
 } gather_replies_worker_args;
 
 /**
@@ -278,19 +277,11 @@ static packet_status gather_replies_worker(delegate_id delegate_index,
 {
     gather_replies_worker_args *args =
         (gather_replies_worker_args *) void_args;
-    packet_status s = args->get_packet(delegates[delegate_index].fd,
-                                       packet_set_get(args->replies,
-                                                      delegate_index));
-    if (s == PACKET_COMPLETE) {
-        args->register_reply(delegate_index,
-                             packet_set_get(args->replies, delegate_index));
-    }
-    return s;
+    return args->get_packet(delegates[delegate_index].fd,
+                            packet_set_get(args->replies, delegate_index));
 }
 
-packet_set *delegate_get(delegate_filter filter,
-                         packet_reader get_packet,
-                         void (*register_reply) (delegate_id, packet *))
+packet_set *delegate_get(delegate_filter filter, packet_reader get_packet)
 {
     packet_set *replies = packet_set_new(delegate_count);
     if (!replies) {
@@ -301,7 +292,6 @@ packet_set *delegate_get(delegate_filter filter,
     gather_replies_worker_args args;
     args.replies = replies;
     args.get_packet = get_packet;
-    args.register_reply = register_reply;
     if (delegate_io(POLLIN, gather_replies_worker, &args, filter) == 0) {
         return 0;
     }

@@ -149,27 +149,50 @@ void server(int fd, struct sockaddr_in *addr)
             lo(LOG_DEBUG, "server: waiting for reply...");
 
             packet_set *replies = delegate_get(db_driver_delegate_filter,
-                                               db_driver_get_packet,
-                                               db_driver_reply);
+                                               db_driver_get_packet);
             if (!replies) {
                 lo(LOG_ERROR, "server: error getting delegate replies");
                 delegate_disconnect();
                 return;
             }
-            packet *final_reply = db_driver_reduce_replies(replies);
-            packet_set_delete(replies);
 
-            lo(LOG_DEBUG, "server: returning reply...");
-
-            if (send_reply(fd, final_reply, db_driver_put_packet) == -1) {
-                lo(LOG_ERROR, "server: error sending reply: %s",
-                   strerror(errno));
-                packet_delete(final_reply);
-                delegate_disconnect();
-                return;
+            /* let the db driver know about each reply packet */
+            for (delegate_id i = 0; i <= delegate_max(); ++i) {
+                db_driver_reply(i, packet_set_get(replies, i));
             }
 
-            packet_delete(final_reply);
+            /* If there's been a driver-level error in at least one
+               delegate, we still have to remain in the while (expecting
+               replies) loop to keep the other delegates' states consistent.
+               The error will be returned to the client afterwards. */
+            if (!db_driver_got_error()) {
+                packet *final_reply = db_driver_reduce_replies(replies);
+
+                lo(LOG_DEBUG, "server: returning reply...");
+
+                if (send_reply(fd, final_reply, db_driver_put_packet) == -1) {
+                    lo(LOG_ERROR, "server: error sending reply: %s",
+                       strerror(errno));
+                    packet_set_delete(replies);
+                    packet_delete(final_reply);
+                    delegate_disconnect();
+                    return;
+                }
+
+                packet_delete(final_reply);
+            }
+
+            packet_set_delete(replies);
+        }
+        if (db_driver_got_error()) {
+            packet *error = db_driver_error_packet();
+            if (send_reply(fd, error, db_driver_put_packet) == -1) {
+                lo(LOG_ERROR, "server: error sending reply: %s",
+                   strerror(errno));
+                packet_delete(error);
+                return;
+            }
+            packet_delete(error);
         }
 
         lo(LOG_DEBUG, "server: done with this conversation.");

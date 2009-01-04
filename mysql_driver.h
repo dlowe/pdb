@@ -35,6 +35,10 @@ short mysql_driver_expect_commands(void);
  */
 short mysql_driver_expect_replies(void);
 
+short mysql_driver_got_error(void);
+
+packet *mysql_driver_error_packet(void);
+
 short mysql_driver_delegate_filter(delegate_id id);
 
 /**

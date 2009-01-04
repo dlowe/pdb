@@ -33,9 +33,7 @@ delegate_id delegate_max(void);
  * @return a list of replies gathered from delegate servers; the caller is
  * responsible for freeing this list!
  */
-packet_set *delegate_get(delegate_filter filter,
-                         packet_reader get_packet,
-                         void (*register_reply) (delegate_id, packet *));
+packet_set *delegate_get(delegate_filter filter, packet_reader get_packet);
 
 /**
  * Parallel write of a packet to a set of delegate servers.

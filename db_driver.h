@@ -26,6 +26,8 @@ extern short (*db_driver_initialize) (delegate_id);
 extern short (*db_driver_done) (void);
 extern short (*db_driver_expect_commands) (void);
 extern short (*db_driver_expect_replies) (void);
+extern short (*db_driver_got_error) (void);
+extern packet *(*db_driver_error_packet) (void);
 extern short (*db_driver_delegate_filter) (delegate_id);
 extern packet_reader db_driver_get_packet;
 extern packet_writer db_driver_put_packet;

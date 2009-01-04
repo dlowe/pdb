@@ -29,6 +29,7 @@ enum enum_server_command {
 static short done;
 static short waiting_for_client_auth;
 static short command_is_client_auth;
+packet *error_packet;
 
 enum expect_reply_state {
     REP_NONE,
@@ -40,6 +41,7 @@ enum expect_reply_state {
 
 typedef struct {
     short expecting_rows;
+    short error;
     enum expect_reply_state expect_replies;
 } delegate_state;
 delegate_state *delegate_states;
@@ -58,6 +60,7 @@ short mysql_driver_initialize(delegate_id max_delegate_id)
 
     delegate_states_count = max_delegate_id + 1;
     for (delegate_id i = 0; i < delegate_states_count; ++i) {
+        delegate_states[i].error = 0;
         delegate_states[i].expecting_rows = 0;
         delegate_states[i].expect_replies = REP_GREETING;
     }
@@ -73,8 +76,19 @@ short mysql_driver_expect_replies(void)
 {
     if (!done) {
         for (delegate_id i = 0; i < delegate_states_count; ++i) {
-            if (delegate_states[i].expect_replies != REP_NONE)
+            if (delegate_states[i].expect_replies != REP_NONE) {
                 return 1;
+            }
+        }
+    }
+    return 0;
+}
+
+short mysql_driver_got_error(void)
+{
+    for (delegate_id i = 0; i < delegate_states_count; ++i) {
+        if (delegate_states[i].error == 1) {
+            return 1;
         }
     }
     return 0;
@@ -84,11 +98,17 @@ short mysql_driver_expect_commands(void)
 {
     if (!done) {
         for (delegate_id i = 0; i < delegate_states_count; ++i) {
-            if (delegate_states[i].expect_replies == REP_NONE)
+            if (delegate_states[i].expect_replies == REP_NONE) {
                 return 1;
+            }
         }
     }
     return 0;
+}
+
+packet *mysql_driver_error_packet(void)
+{
+    return packet_copy(error_packet);
 }
 
 packet_status mysql_driver_get_packet(int fd, packet * p)
@@ -196,6 +216,7 @@ db_driver_command_type mysql_driver_command(packet * in_command)
     command_is_client_auth = 0;
 
     for (delegate_id i = 0; i < delegate_states_count; ++i) {
+        delegate_states[i].error = 0;
         delegate_states[i].expecting_rows = 0;
         delegate_states[i].expect_replies = REP_SIMPLE;
     }
@@ -239,16 +260,25 @@ short mysql_driver_delegate_filter(delegate_id id)
 
 void mysql_driver_reply(delegate_id id, packet * p)
 {
+    /* have to handle being called unnecessarily */
+    if (delegate_states[id].expect_replies == REP_NONE) {
+        return;
+    }
+
+    /* short-circuit for error packets */
     if ((unsigned char)(p->bytes[4]) == 0xff) {
         char *error = malloc(p->size - 7 + 1);
         if (error) {
             strncpy(error, p->bytes + 7, p->size - 7);
             error[p->size - 7] = 0;
-            lo(LOG_ERROR, "mysql_driver_reply(%hu): ERROR: %s", id, error);
+            lo(LOG_INFO, "mysql_driver_reply(%hu): ERROR: %s", id, error);
         }
 
-        /* XXX: failure to handle errors correctly currently is causing server
-           to hang on error cases... */
+        delegate_states[id].error = 1;
+        delegate_states[id].expect_replies = REP_NONE;
+        delegate_states[id].expecting_rows = 0;
+        error_packet = packet_copy(p);  /* XX: hacky, will probably need fix */
+        return;
     }
 
     switch (delegate_states[id].expect_replies) {

@@ -23,32 +23,35 @@ listen_port = $port
 $MySQLTest::database_configuration
 ENDCFG
 
-my $dbh_pdb = DBI->connect("DBI:mysql:database=irrelevant;host=127.0.0.1;port=$port", 'root', '');
-die unless defined $dbh_pdb;
+eval {
+    my $dbh_pdb = DBI->connect("DBI:mysql:database=irrelevant;host=127.0.0.1;port=$port", 'root', '', { RaiseError => 1 });
 
-my $rv;
+    my $rv;
 
-## update existing data on master
-# $rv = $dbh_pdb->do('update whatsit set description = \'poot\' where whatsit_id = 1');
-# ok($rv == 1);
+    ## update existing data on master
+    $rv = $dbh_pdb->do('update whatsit set description = \'poot\' where whatsit_id = 1');
+    ok($rv == 1);
 
-## update nonexistent data on master
-# $rv = $dbh_pdb->do('update whatsit set description = \'poot\' where whatsit_id = 0');
-# ok($rv == 0);
+    ## update nonexistent data on master
+    $rv = $dbh_pdb->do('update whatsit set description = \'poot\' where whatsit_id = 0');
+    ok($rv == 0);
 
-## update existing partitioned data
-# $rv = $dbh_pdb->do('update widget set widget_information = \'poot\' where widget_id = 2');
-# ok($rv == 1);
-# $rv = $dbh_pdb->do('update widget set widget_information = \'poot\' where widget_id = 3');
-# ok($rv == 1);
+    ## update existing partitioned data
+    $rv = $dbh_pdb->do('update widget set widget_information = \'poot\' where widget_id = 2');
+    ok($rv == 1);
+    $rv = $dbh_pdb->do('update widget set widget_information = \'poot\' where widget_id = 3');
+    ok($rv == 1);
 
-## update nonexistent partitioned data
-# $rv = $dbh_pdb->do('update widget set widget_information = \'poot\' where widget_id = 0');
-# ok($rv == 0);
+    ## update nonexistent partitioned data
+    $rv = $dbh_pdb->do('update widget set widget_information = \'poot\' where widget_id = 0');
+    ok($rv == 0);
 
-## update partitions without specifying key (parallel)
-# $rv = $dbh_pdb->do('update widget set widget_information = \'boot\' where widget_information = \'poot\'');
-# ok($rv == 2);
+    ## update partitions without specifying key (parallel)
+    $rv = $dbh_pdb->do('update widget set widget_information = \'boot\' where widget_information = \'poot\'');
+    ok($rv == 2);
 
-$dbh_pdb->disconnect();
+    $dbh_pdb->disconnect();
+};
+ok($@ eq '');
+
 PDBTest::shutdown();

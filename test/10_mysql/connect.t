@@ -23,22 +23,23 @@ listen_port = $port
 $MySQLTest::database_configuration
 ENDCFG
 
-my $dbh_pdb = DBI->connect("DBI:mysql:database=irrelevant;host=127.0.0.1;port=$port", 'root', '');
-ok(defined $dbh_pdb);
+eval {
+    my $dbh_pdb = DBI->connect("DBI:mysql:database=irrelevant;host=127.0.0.1;port=$port", 'root', '', { RaiseError => 1 });
 
-if (defined $dbh_pdb) {
     my $row = $dbh_pdb->selectall_arrayref('SELECT DATABASE(),USER()')->[0];
     ok($row);
     ok($row->[0] eq 'master');
     ok($row->[1] =~ /^root/);
 
-    # $row = $dbh_pdb->selectall_arrayref("LISTFIELDS widget_map");
-    # ok($row);
-    # $row = $dbh_pdb->selectall_arrayref("LISTFIELDS whatsit");
-    # ok($row);
-    # $row = $dbh_pdb->selectall_arrayref("LISTFIELDS widget");
-    # ok($row);
+    $row = $dbh_pdb->selectall_arrayref("LISTFIELDS widget_map");
+    ok($row);
+    $row = $dbh_pdb->selectall_arrayref("LISTFIELDS whatsit");
+    ok($row);
+    $row = $dbh_pdb->selectall_arrayref("LISTFIELDS widget");
+    ok($row);
 
     $dbh_pdb->disconnect();
-}
+};
+ok($@ eq '');
+
 PDBTest::shutdown();
