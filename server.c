@@ -68,9 +68,60 @@ static int read_command(int fd, packet * p, packet_reader get_packet)
     return 0;
 }
 
+static short *command_delegate_mask;
+static short command_delegate_filter(delegate_id id)
+{
+    return command_delegate_mask[id];
+}
+static void command_delegate_init(void)
+{
+    command_delegate_mask = malloc(sizeof(short) * delegate_get_count());
+    for (delegate_id i = 0; i < delegate_get_count(); ++i) {
+        command_delegate_mask[i] = 0;
+    }
+}
+static void command_delegate_all(void)
+{
+    for (delegate_id i = 0; i < delegate_get_count(); ++i) {
+        command_delegate_mask[i] = 0;
+    }
+}
+static void command_delegate_master(void)
+{
+    for (delegate_id i = 0; i < delegate_get_count(); ++i) {
+        if (i == delegate_master_id()) {
+            command_delegate_mask[i] = 0;
+        } else {
+            command_delegate_mask[i] = 1;
+        }
+    }
+}
+static void command_delegate_random_partition(void)
+{
+    delegate_id random_id;
+    do {
+        /* Flawfinder: ignore random */
+        random_id = random() % delegate_get_count();
+    } while (random_id == delegate_master_id());
+
+    for (delegate_id i = 0; i < delegate_get_count(); ++i) {
+        if (i == random_id) {
+            command_delegate_mask[i] = 0;
+        } else {
+            command_delegate_mask[i] = 1;
+        }
+    }
+}
+
 void server(int fd, struct sockaddr_in *addr)
 {
-    if (!db_driver_initialize(delegate_max())) {
+    delegate_filter put_filters[] = { command_delegate_filter, 0 };
+    delegate_filter get_filters[] =
+        { command_delegate_filter, db_driver_delegate_filter, 0 };
+
+    command_delegate_init();
+
+    if (!db_driver_initialize(delegate_get_count())) {
         lo(LOG_ERROR, "server: error initializing database driver");
         return;
     }
@@ -84,6 +135,7 @@ void server(int fd, struct sockaddr_in *addr)
 
     /* loop over conversation between client and delegates */
     while (!db_driver_done()) {
+        lo(LOG_DEBUG, "poot!");
         /* read commands and delegate them */
         while (db_driver_expect_commands()) {
             packet *in_command = packet_new();
@@ -106,6 +158,9 @@ void server(int fd, struct sockaddr_in *addr)
                 return;
             }
 
+            /* default is to proxy command to all delegates */
+            command_delegate_all();
+
             switch (db_driver_command(in_command)) {
             case DB_DRIVER_COMMAND_TYPE_SQL:
                 {
@@ -119,22 +174,49 @@ void server(int fd, struct sockaddr_in *addr)
 
                     lo(LOG_DEBUG, "server: query '%s'", sql);
 
-                    if (sql_requires_mapping(sql)) {
-                        /* mapping interjection */
-                        //int partition_id = map(sql_key(sql));
-                    }
-                    //db_driver_sql_overwrite(in_command, sql_rewrite(sql));
+                    command_delegate_all();
 
                     free(sql);
                     break;
                 }
-            default:
+            case DB_DRIVER_COMMAND_TYPE_TABLE_META:
+                {
+                    char *table = db_driver_table_extract(in_command);
+                    if (!table) {
+                        lo(LOG_ERROR, "server: error extracting table");
+                        packet_delete(in_command);
+                        delegate_disconnect();
+                        return;
+                    }
+
+                    lo(LOG_ERROR, "server: table '%s'", table);
+
+                    switch (sql_get_table_type(table)) {
+                    case SQL_TABLE_TYPE_MASTER:
+                        command_delegate_master();
+                        break;
+                    case SQL_TABLE_TYPE_PARTITIONED:
+                        command_delegate_random_partition();
+                        break;
+                    }
+
+                    free(table);
+                    break;
+                }
+            case DB_DRIVER_COMMAND_TYPE_UNSUPPORTED:
+                {
+                    lo(LOG_ERROR, "server: got unsupported command");
+                    packet_delete(in_command);
+                    delegate_disconnect();
+                    return;
+                }
+            case DB_DRIVER_COMMAND_TYPE_OTHER:
                 break;
             };
 
             lo(LOG_DEBUG, "server: delegating command...");
-            if (!delegate_put(db_driver_put_packet, db_driver_rewrite_command,
-                              in_command)) {
+            if (!delegate_put(put_filters, db_driver_put_packet,
+                              db_driver_rewrite_command, in_command)) {
                 lo(LOG_ERROR, "server: error delegating command");
                 packet_delete(in_command);
                 delegate_disconnect();
@@ -144,11 +226,13 @@ void server(int fd, struct sockaddr_in *addr)
             packet_delete(in_command);
         }
 
+        db_driver_command_done(put_filters);
+
         /* read replies from delegates, reduce and return them */
         while (db_driver_expect_replies()) {
             lo(LOG_DEBUG, "server: waiting for reply...");
 
-            packet_set *replies = delegate_get(db_driver_delegate_filter,
+            packet_set *replies = delegate_get(get_filters,
                                                db_driver_get_packet);
             if (!replies) {
                 lo(LOG_ERROR, "server: error getting delegate replies");
@@ -157,8 +241,11 @@ void server(int fd, struct sockaddr_in *addr)
             }
 
             /* let the db driver know about each reply packet */
-            for (delegate_id i = 0; i <= delegate_max(); ++i) {
-                db_driver_reply(i, packet_set_get(replies, i));
+            for (delegate_id i = 0; i < delegate_get_count(); ++i) {
+                packet *p = packet_set_get(replies, i);
+                if ((p) && (p->size)) {
+                    db_driver_reply(i, p);
+                }
             }
 
             /* If there's been a driver-level error in at least one

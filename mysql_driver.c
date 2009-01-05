@@ -47,18 +47,18 @@ typedef struct {
 delegate_state *delegate_states;
 delegate_id delegate_states_count;
 
-short mysql_driver_initialize(delegate_id max_delegate_id)
+short mysql_driver_initialize(delegate_id delegate_count)
 {
     done = 0;
     waiting_for_client_auth = 0;
     command_is_client_auth = 0;
 
-    delegate_states = malloc(sizeof(delegate_state) * (max_delegate_id + 1));
+    delegate_states = malloc(sizeof(delegate_state) * delegate_count);
     if (!delegate_states) {
         return 0;
     }
 
-    delegate_states_count = max_delegate_id + 1;
+    delegate_states_count = delegate_count;
     for (delegate_id i = 0; i < delegate_states_count; ++i) {
         delegate_states[i].error = 0;
         delegate_states[i].expecting_rows = 0;
@@ -216,6 +216,8 @@ db_driver_command_type mysql_driver_command(packet * in_command)
     command_is_client_auth = 0;
 
     for (delegate_id i = 0; i < delegate_states_count; ++i) {
+        /* we default to expecting a simple or tabular response with no row
+           data */
         delegate_states[i].error = 0;
         delegate_states[i].expecting_rows = 0;
         delegate_states[i].expect_replies = REP_SIMPLE;
@@ -231,26 +233,55 @@ db_driver_command_type mysql_driver_command(packet * in_command)
         (enum enum_server_command)(unsigned char)in_command->bytes[4];
     lo(LOG_DEBUG, "mysql_driver_command: I've got a %u packet...", command);
 
-    db_driver_command_type type = DB_DRIVER_COMMAND_TYPE_OTHER;
+    db_driver_command_type type;
 
     /* if we see a QUIT command, don't expect the delegates to respond */
-    if (command == COM_QUIT) {
+    switch (command) {
+    case COM_QUIT:
+        /* expecting delegates to quietly drop our connection */
         for (delegate_id i = 0; i < delegate_states_count; ++i) {
             delegate_states[i].expect_replies = REP_NONE;
         }
         done = 1;
-    } else {
-        lo(LOG_DEBUG, "mysql_driver_command(*): REP_NONE -> REP_SIMPLE");
-    }
-
-    if (command == COM_QUERY) {
+        type = DB_DRIVER_COMMAND_TYPE_OTHER;
+        break;
+    case COM_QUERY:
+        /* expecting row data to follow the initial response */
         for (delegate_id i = 0; i < delegate_states_count; ++i) {
             delegate_states[i].expecting_rows = 1;
         }
         type = DB_DRIVER_COMMAND_TYPE_SQL;
+        break;
+    case COM_FIELD_LIST:
+        type = DB_DRIVER_COMMAND_TYPE_TABLE_META;
+        break;
+    default:
+        type = DB_DRIVER_COMMAND_TYPE_UNSUPPORTED;
+        break;
     }
 
     return type;
+}
+
+void mysql_driver_command_done(delegate_filter * filters)
+{
+    for (delegate_id i = 0; i < delegate_states_count; ++i) {
+        short filtered = 0;
+
+        if (filters) {
+            int n = 0;
+            while (filters[n] != 0) {
+                if (filters[n] (i)) {
+                    filtered = 1;
+                }
+                ++n;
+            }
+        }
+
+        if (filtered) {
+            delegate_states[i].expect_replies = REP_NONE;
+        }
+    }
 }
 
 short mysql_driver_delegate_filter(delegate_id id)
@@ -272,6 +303,7 @@ void mysql_driver_reply(delegate_id id, packet * p)
             strncpy(error, p->bytes + 7, p->size - 7);
             error[p->size - 7] = 0;
             lo(LOG_INFO, "mysql_driver_reply(%hu): ERROR: %s", id, error);
+            free(error);
         }
 
         delegate_states[id].error = 1;
@@ -335,7 +367,14 @@ void mysql_driver_reply(delegate_id id, packet * p)
 packet *mysql_driver_reduce_replies(packet_set * replies)
 {
     lo(LOG_DEBUG, "mysql_driver_reduce_replies: hack hack hack");
-    return packet_copy(packet_set_get(replies, 0));
+    packet *p;
+    for (delegate_id i = 0; i < delegate_states_count; ++i) {
+        p = packet_set_get(replies, i);
+        if (p && p->size) {
+            break;
+        }
+    }
+    return packet_copy(p);
 }
 
 static void edit_packet_length(packet * p)
@@ -382,4 +421,9 @@ char *mysql_driver_sql_extract(packet * in_command)
         sql[in_command->size - 5] = 0;
     }
     return sql;
+}
+
+char *mysql_driver_table_extract(packet * in_command)
+{
+    return mysql_driver_sql_extract(in_command);
 }

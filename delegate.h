@@ -24,7 +24,8 @@ DECLARE_COMPONENT(delegate);
  */
 int delegate_connect(void);
 
-delegate_id delegate_max(void);
+delegate_id delegate_get_count(void);
+delegate_id delegate_master_id(void);
 
 /**
  * Parallel read of a set of packets from a set of delegate servers.
@@ -33,7 +34,7 @@ delegate_id delegate_max(void);
  * @return a list of replies gathered from delegate servers; the caller is
  * responsible for freeing this list!
  */
-packet_set *delegate_get(delegate_filter filter, packet_reader get_packet);
+packet_set *delegate_get(delegate_filter * filters, packet_reader get_packet);
 
 /**
  * Parallel write of a packet to a set of delegate servers.
@@ -43,7 +44,7 @@ packet_set *delegate_get(delegate_filter filter, packet_reader get_packet);
  * @param[in] command the packet to write to all delegates.
  * @return 1 on success, 0 on failure
  */
-int delegate_put(packet_writer put_packet,
+int delegate_put(delegate_filter * filters, packet_writer put_packet,
                  int (*rewrite_command) (packet *, packet *, const char *),
                  packet * command);
 

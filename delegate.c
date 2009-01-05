@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include <netdb.h>
 #include <string.h>
+#include <limits.h>
 
 /* project includes */
 #include "delegate.h"
@@ -81,9 +82,19 @@ static int delegate_initialize(cfg_t * configuration)
     return 1;
 }
 
-delegate_id delegate_max(void)
+delegate_id delegate_get_count(void)
 {
-    return delegate_count - 1;
+    return delegate_count;
+}
+
+delegate_id delegate_master_id(void)
+{
+    for (delegate_id i = 0; i < delegate_count; ++i) {
+        if (delegates[i].partition_id == MASTER_PARTITION_ID) {
+            return i;
+        }
+    }
+    return USHRT_MAX;           /* XX: this should never happen... */
 }
 
 /**
@@ -106,7 +117,7 @@ typedef struct {
  */
 static int delegate_io(short event,
                        packet_status(*worker) (delegate_id, void *),
-                       void *worker_args, delegate_filter filter)
+                       void *worker_args, delegate_filter * filters)
 {
     delegate_io_info *info =
         malloc(sizeof(delegate_io_info) * delegate_count);
@@ -116,7 +127,20 @@ static int delegate_io(short event,
 
     int pending = 0;
     for (delegate_id i = 0; i < delegate_count; ++i) {
-        if ((filter == NULL) || (!filter(i))) {
+        short filtered = 0;
+        if (filters != NULL) {
+            int n = 0;
+            while (filters[n] != NULL) {
+                if (filters[n] (i)) {
+                    lo(LOG_DEBUG, "delegate_io(): filtered %hu by filter %d",
+                       i, n);
+                    filtered = 1;
+                }
+                ++n;
+            }
+        }
+
+        if (!filtered) {
             ++pending;
             info[i].pending = 1;
             info[i].poll_index = -1;
@@ -281,7 +305,7 @@ static packet_status gather_replies_worker(delegate_id delegate_index,
                             packet_set_get(args->replies, delegate_index));
 }
 
-packet_set *delegate_get(delegate_filter filter, packet_reader get_packet)
+packet_set *delegate_get(delegate_filter * filters, packet_reader get_packet)
 {
     packet_set *replies = packet_set_new(delegate_count);
     if (!replies) {
@@ -292,7 +316,7 @@ packet_set *delegate_get(delegate_filter filter, packet_reader get_packet)
     gather_replies_worker_args args;
     args.replies = replies;
     args.get_packet = get_packet;
-    if (delegate_io(POLLIN, gather_replies_worker, &args, filter) == 0) {
+    if (delegate_io(POLLIN, gather_replies_worker, &args, filters) == 0) {
         return 0;
     }
 
@@ -324,7 +348,7 @@ static packet_status proxy_command_worker(delegate_id delegate_index,
                             &(args->sent_list[delegate_index]));
 }
 
-int delegate_put(packet_writer put_packet,
+int delegate_put(delegate_filter * filters, packet_writer put_packet,
                  int (*rewrite_command) (packet *, packet *, const char *),
                  packet * command)
 {
@@ -354,7 +378,7 @@ int delegate_put(packet_writer put_packet,
     args.sent_list = sent_list;
     args.put_packet = put_packet;
     args.commands = commands;
-    if (!delegate_io(POLLOUT, proxy_command_worker, &args, NULL)) {
+    if (!delegate_io(POLLOUT, proxy_command_worker, &args, filters)) {
         packet_set_delete(commands);
         free(sent_list);
         return 0;

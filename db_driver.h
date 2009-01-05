@@ -19,6 +19,8 @@ DECLARE_COMPONENT(db_driver);
 
 typedef enum {
     DB_DRIVER_COMMAND_TYPE_SQL,
+    DB_DRIVER_COMMAND_TYPE_TABLE_META,
+    DB_DRIVER_COMMAND_TYPE_UNSUPPORTED,
     DB_DRIVER_COMMAND_TYPE_OTHER
 } db_driver_command_type;
 
@@ -32,9 +34,11 @@ extern short (*db_driver_delegate_filter) (delegate_id);
 extern packet_reader db_driver_get_packet;
 extern packet_writer db_driver_put_packet;
 extern db_driver_command_type(*db_driver_command) (packet *);
+extern void (*db_driver_command_done) (delegate_filter *);
 extern void (*db_driver_reply) (delegate_id, packet *);
 extern packet *(*db_driver_reduce_replies) (packet_set *);
 extern int (*db_driver_rewrite_command) (packet *, packet *, const char *);
 extern char *(*db_driver_sql_extract) (packet *);
+extern char *(*db_driver_table_extract) (packet *);
 
 #endif

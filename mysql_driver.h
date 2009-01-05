@@ -71,6 +71,8 @@ packet_status mysql_driver_put_packet(int fd, packet * p, int *sent);
  */
 db_driver_command_type mysql_driver_command(packet * in_command);
 
+void mysql_driver_command_done(delegate_filter * filters);
+
 void mysql_driver_reply(delegate_id id, packet * in_reply);
 
 /**
@@ -93,5 +95,6 @@ int mysql_driver_rewrite_command(packet * in, packet * out,
                                  const char *db_name);
 
 char *mysql_driver_sql_extract(packet * in);
+char *mysql_driver_table_extract(packet * in);
 
 #endif
