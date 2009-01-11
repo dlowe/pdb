@@ -1,6 +1,20 @@
 #ifndef _COMPONENT_H
 #define _COMPONENT_H
 
+/** @defgroup components Components
+ *
+ * Components are the high-level building blocks of this software. They're
+ * also the parts of the system which can read configuration.
+ *
+ * Components are represented as a tree, internally: each node has a config
+ * reader function, a shutdown function, a libconfuse cfg_opt_t object which
+ * describes its configuration, and (optionally) a list of subcomponents.
+ *
+ * For the most part, the tree structure also describes the expected
+ * coupling between the components -- i.e. while a parent may call
+ * into its children, children don't call into their parents or peers.
+ */
+
 /**
  * @file component.h
  * @brief Framework for configuration, booting and shutting down of components.
@@ -22,16 +36,21 @@
 #define OPTIONS_NONE 0
 #define SUBCOMPONENTS_NONE 0
 
+/** A component declares its subcomponents via this macro */
 #define SUBCOMPONENT(name) & name ## _component
 #define SUBCOMPONENT_END() 0
 
-typedef struct component_struct component;
-struct component_struct {
-    int (*initialize) (cfg_t *);
-    void (*shutdown) (void);
-    cfg_opt_t *options;
-    component **subcomponents;
-};
+//typedef struct component_struct component;
+
+/**
+ * Component definition record.
+ */
+typedef struct component_struct {
+    int (*initialize) (cfg_t *); /**< config reading function */
+    void (*shutdown) (void);     /**< shutdown function */
+    cfg_opt_t *options;          /**< config options for this component */
+    struct component_struct **subcomponents;   /**< children of this component */
+} component;
 
 /**
  * Configure and initialize all components.

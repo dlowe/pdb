@@ -1,7 +1,7 @@
 #ifndef __PACKET_H
 #define __PACKET_H
 
-#include "delegate_id.h"
+#include "delegate_filter.h"
 
 /**
  * @file packet.h
@@ -15,22 +15,21 @@
  * A single "packet" of communication.
  */
 typedef struct {
-    char *bytes;
-    int allocated;
-    int size;
+    char *bytes;   /**< actual contents of the packet */
+    int allocated; /**< current allocated byte count */
+    int size;      /**< current used byte count */
 } packet;
 
 /**
  * A set of packets received by delegates.
  */
 typedef struct {
-    packet *packets;
-    int count;
+    packet *packets; /**< list of packets in the set */
+    int count;       /**< count of packets in the set */
 } packet_set;
 
 /**
  * Possible statuses for a non-blocking I/O operation.
- * XXX: may not be quite the right level of abstraction for this...
  */
 typedef enum {
     PACKET_ERROR,
@@ -74,7 +73,7 @@ void packet_delete(packet * p);
 /**
  * Allocate a new packet set.
  *
- * @param[in] count the number of packets to be contained in the set.
+ * @param[in] delegate_count the number of packets to be contained in the set.
  * @return freshly allocated packet set of 'count' empty packets
  */
 packet_set *packet_set_new(delegate_id delegate_count);

@@ -4,6 +4,7 @@ use strict;
 use warnings;
 
 use File::Temp ();
+use Time::HiRes ();
 
 package PDBTest;
 
@@ -42,7 +43,7 @@ sub shutdown () {
     if ($pid) {
         my $output = `kill $pid`;
         die $output if $output ne '';
-        select(undef, undef, undef, 0.50);
+        Time::HiRes::sleep(0.50);
         my $newpid = pid();
         die "pdb didn't die: $newpid (killed $pid)" if $newpid ne '';
     }

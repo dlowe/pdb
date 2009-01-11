@@ -13,9 +13,11 @@
 
 #include "packet.h"
 #include "component.h"
-#include "delegate_id.h"
+#include "delegate_filter.h"
 
+/** @cond */
 DECLARE_COMPONENT(db_driver);
+/** @endcond */
 
 typedef enum {
     DB_DRIVER_COMMAND_TYPE_SQL,
@@ -25,20 +27,25 @@ typedef enum {
 } db_driver_command_type;
 
 extern short (*db_driver_initialize) (delegate_id);
+
 extern short (*db_driver_done) (void);
 extern short (*db_driver_expect_commands) (void);
 extern short (*db_driver_expect_replies) (void);
 extern short (*db_driver_got_error) (void);
-extern packet *(*db_driver_error_packet) (void);
-extern short (*db_driver_delegate_filter) (delegate_id);
+
 extern packet_reader db_driver_get_packet;
 extern packet_writer db_driver_put_packet;
+
+extern delegate_filter db_driver_delegate_filter;
+
 extern db_driver_command_type(*db_driver_command) (packet *);
-extern void (*db_driver_command_done) (delegate_filter *);
-extern void (*db_driver_reply) (delegate_id, packet *);
-extern packet *(*db_driver_reduce_replies) (packet_set *);
 extern int (*db_driver_rewrite_command) (packet *, packet *, const char *);
+extern void (*db_driver_command_done) (delegate_filter *);
+
+extern void (*db_driver_reply) (delegate_id, packet *);
 extern char *(*db_driver_sql_extract) (packet *);
 extern char *(*db_driver_table_extract) (packet *);
+extern packet *(*db_driver_reduce_replies) (packet_set *);
+extern packet *(*db_driver_error_packet) (void);
 
 #endif

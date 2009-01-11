@@ -68,8 +68,8 @@ static int read_command(int fd, packet * p, packet_reader get_packet)
     return 0;
 }
 
-static short *command_delegate_mask;
-static short command_delegate_filter(delegate_id id)
+static delegate_filter_result *command_delegate_mask;
+static delegate_filter_result command_delegate_filter(delegate_id id)
 {
     return command_delegate_mask[id];
 }
@@ -77,22 +77,22 @@ static void command_delegate_init(void)
 {
     command_delegate_mask = malloc(sizeof(short) * delegate_get_count());
     for (delegate_id i = 0; i < delegate_get_count(); ++i) {
-        command_delegate_mask[i] = 0;
+        command_delegate_mask[i] = DELEGATE_FILTER_USE;
     }
 }
 static void command_delegate_all(void)
 {
     for (delegate_id i = 0; i < delegate_get_count(); ++i) {
-        command_delegate_mask[i] = 0;
+        command_delegate_mask[i] = DELEGATE_FILTER_USE;
     }
 }
 static void command_delegate_master(void)
 {
     for (delegate_id i = 0; i < delegate_get_count(); ++i) {
         if (i == delegate_master_id()) {
-            command_delegate_mask[i] = 0;
+            command_delegate_mask[i] = DELEGATE_FILTER_USE;
         } else {
-            command_delegate_mask[i] = 1;
+            command_delegate_mask[i] = DELEGATE_FILTER_DONT_USE;
         }
     }
 }
@@ -106,9 +106,9 @@ static void command_delegate_random_partition(void)
 
     for (delegate_id i = 0; i < delegate_get_count(); ++i) {
         if (i == random_id) {
-            command_delegate_mask[i] = 0;
+            command_delegate_mask[i] = DELEGATE_FILTER_USE;
         } else {
-            command_delegate_mask[i] = 1;
+            command_delegate_mask[i] = DELEGATE_FILTER_DONT_USE;
         }
     }
 }
@@ -135,7 +135,6 @@ void server(int fd, struct sockaddr_in *addr)
 
     /* loop over conversation between client and delegates */
     while (!db_driver_done()) {
-        lo(LOG_DEBUG, "poot!");
         /* read commands and delegate them */
         while (db_driver_expect_commands()) {
             packet *in_command = packet_new();
@@ -300,6 +299,7 @@ static component *server_subcomponents[] = {
     SUBCOMPONENT_END()
 };
 
+/** @ingroup components */
 component server_component = {
     INITIALIZE_NONE,
     SHUTDOWN_NONE,

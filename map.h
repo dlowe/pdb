@@ -10,6 +10,8 @@
 
 #include "component.h"
 
+/** @cond */
 DECLARE_COMPONENT(map);
+/** @endcond */
 
 #endif

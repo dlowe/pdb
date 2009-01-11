@@ -9,15 +9,23 @@
  */
 
 #include "component.h"
-#include "delegate_id.h"
+#include "delegate_filter.h"
 
+/** @cond */
 DECLARE_COMPONENT(sql);
+/** @endcond */
 
 typedef enum {
     SQL_TABLE_TYPE_MASTER,
     SQL_TABLE_TYPE_PARTITIONED
 } sql_table_type;
 
+/**
+ * Determine the type of a given table (master or partitioned)
+ *
+ * @param[in] table the name of the table
+ * @return table type
+ */
 sql_table_type sql_get_table_type(char *table);
 
 #endif

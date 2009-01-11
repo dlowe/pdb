@@ -20,7 +20,9 @@
 
 #include "component.h"
 
+/** @cond */
 DECLARE_COMPONENT(server);
+/** @endcond */
 
 /**
  * Top-level sequencing of a single connection.

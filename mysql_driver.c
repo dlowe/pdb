@@ -266,27 +266,18 @@ db_driver_command_type mysql_driver_command(packet * in_command)
 void mysql_driver_command_done(delegate_filter * filters)
 {
     for (delegate_id i = 0; i < delegate_states_count; ++i) {
-        short filtered = 0;
-
-        if (filters) {
-            int n = 0;
-            while (filters[n] != 0) {
-                if (filters[n] (i)) {
-                    filtered = 1;
-                }
-                ++n;
-            }
-        }
-
-        if (filtered) {
+        if (delegate_filter_reduce(filters, i) == DELEGATE_FILTER_DONT_USE) {
             delegate_states[i].expect_replies = REP_NONE;
         }
     }
 }
 
-short mysql_driver_delegate_filter(delegate_id id)
+delegate_filter_result mysql_driver_delegate_filter(delegate_id id)
 {
-    return (delegate_states[id].expect_replies == REP_NONE);
+    if (delegate_states[id].expect_replies == REP_NONE) {
+        return DELEGATE_FILTER_DONT_USE;
+    }
+    return DELEGATE_FILTER_USE;
 }
 
 void mysql_driver_reply(delegate_id id, packet * p)

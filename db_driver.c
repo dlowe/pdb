@@ -9,7 +9,7 @@ short (*db_driver_expect_commands) (void) = 0;
 short (*db_driver_expect_replies) (void) = 0;
 short (*db_driver_got_error) (void);
 packet *(*db_driver_error_packet) (void);
-short (*db_driver_delegate_filter) (delegate_id);
+delegate_filter db_driver_delegate_filter = 0;
 packet_reader db_driver_get_packet = 0;
 packet_writer db_driver_put_packet = 0;
 db_driver_command_type(*db_driver_command) (packet *) = 0;
@@ -50,6 +50,7 @@ static cfg_opt_t db_driver_options[] = {
     CFG_END()
 };
 
+/** @ingroup components */
 component db_driver_component = {
     db_driver_load,
     SHUTDOWN_NONE,

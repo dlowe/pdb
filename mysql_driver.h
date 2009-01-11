@@ -10,8 +10,14 @@
 
 #include "db_driver.h"
 #include "packet.h"
-#include "delegate_id.h"
+#include "delegate_filter.h"
 
+/**
+ * Initialize the mysql driver.
+ *
+ * @param[in] max_delegate_id the number of delegates, for allocation purposes
+ * @return 1 on success; 0 otherwise.
+ */
 short mysql_driver_initialize(delegate_id max_delegate_id);
 
 /**
@@ -35,11 +41,27 @@ short mysql_driver_expect_commands(void);
  */
 short mysql_driver_expect_replies(void);
 
+/**
+ * Did reply processing encounter any database-level errors?
+ *
+ * @return 1 if an error occurred; 0 otherwise.
+ */
 short mysql_driver_got_error(void);
 
+/**
+ * Packetize an error.
+ *
+ * @return Allocated packet suitable for returning to the client.
+ */
 packet *mysql_driver_error_packet(void);
 
-short mysql_driver_delegate_filter(delegate_id id);
+/**
+ * Filters particular delegates' communication based on the driver state.
+ *
+ * @param[in] id the delegate_id
+ * @return expected disposition of the delegate
+ */
+delegate_filter_result mysql_driver_delegate_filter(delegate_id id);
 
 /**
  * Read the next packet from a file descriptor. This function is intended
@@ -71,8 +93,20 @@ packet_status mysql_driver_put_packet(int fd, packet * p, int *sent);
  */
 db_driver_command_type mysql_driver_command(packet * in_command);
 
+/**
+ * Note when a command is finished proxying.
+ *
+ * @param[in] filters the set of delegate_filters to use to determine
+ *            which delegates we expect to hear back from.
+ */
 void mysql_driver_command_done(delegate_filter * filters);
 
+/**
+ * Note the receipt of a reply packet from a delegate.
+ *
+ * @param[in] id the delegate which generated the packet.
+ * @param[in] in_reply the reply packet
+ */
 void mysql_driver_reply(delegate_id id, packet * in_reply);
 
 /**
@@ -94,7 +128,20 @@ packet *mysql_driver_reduce_replies(packet_set * replies);
 int mysql_driver_rewrite_command(packet * in, packet * out,
                                  const char *db_name);
 
+/**
+ * Extract and return the SQL from a command packet.
+ *
+ * @param[in] in the command packet.
+ * @return allocated SQL string
+ */
 char *mysql_driver_sql_extract(packet * in);
+
+/**
+ * Extract and return the table name from a command packet
+ *
+ * @param[in] in the command packet.
+ * @return allocated table name string
+ */
 char *mysql_driver_table_extract(packet * in);
 
 #endif

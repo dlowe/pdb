@@ -127,20 +127,7 @@ static int delegate_io(short event,
 
     int pending = 0;
     for (delegate_id i = 0; i < delegate_count; ++i) {
-        short filtered = 0;
-        if (filters != NULL) {
-            int n = 0;
-            while (filters[n] != NULL) {
-                if (filters[n] (i)) {
-                    lo(LOG_DEBUG, "delegate_io(): filtered %hu by filter %d",
-                       i, n);
-                    filtered = 1;
-                }
-                ++n;
-            }
-        }
-
-        if (!filtered) {
+        if (delegate_filter_reduce(filters, i) == DELEGATE_FILTER_USE) {
             ++pending;
             info[i].pending = 1;
             info[i].poll_index = -1;
@@ -441,6 +428,7 @@ static cfg_opt_t options[] = {
     CFG_END()
 };
 
+/** @ingroup components */
 component delegate_component = {
     delegate_initialize,
     delegate_shutdown,

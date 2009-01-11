@@ -143,6 +143,7 @@ static cfg_opt_t log_options[] = {
     CFG_END()
 };
 
+/** @ingroup components */
 component log_component = {
     log_open,
     log_close,

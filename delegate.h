@@ -13,9 +13,11 @@
 
 #include "packet.h"
 #include "component.h"
-#include "delegate_id.h"
+#include "delegate_filter.h"
 
+/** @cond */
 DECLARE_COMPONENT(delegate);
+/** @endcond */
 
 /**
  * Connect to all delegates.
@@ -24,12 +26,24 @@ DECLARE_COMPONENT(delegate);
  */
 int delegate_connect(void);
 
+/**
+ * Get delegate count.
+ *
+ * @return the number of delegates.
+ */
 delegate_id delegate_get_count(void);
+
+/**
+ * Get master delegate_id.
+ *
+ * @return the master delegate_id.
+ */
 delegate_id delegate_master_id(void);
 
 /**
  * Parallel read of a set of packets from a set of delegate servers.
  *
+ * @param[in] filters set of filters to apply to the list of delegates
  * @param[in] get_packet function for reading a single packet
  * @return a list of replies gathered from delegate servers; the caller is
  * responsible for freeing this list!
@@ -39,6 +53,7 @@ packet_set *delegate_get(delegate_filter * filters, packet_reader get_packet);
 /**
  * Parallel write of a packet to a set of delegate servers.
  *
+ * @param[in] filters set of filters to apply to the list of delegates
  * @param[in] put_packet function for writing a single packet.
  * @param[in] rewrite_command function for per-delegate command rewriting.
  * @param[in] command the packet to write to all delegates.

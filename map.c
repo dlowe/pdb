@@ -32,6 +32,7 @@ static cfg_opt_t options[] = {
     CFG_END()
 };
 
+/** @ingroup components */
 component map_component = {
     map_initialize,
     map_shutdown,

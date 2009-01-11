@@ -15,7 +15,9 @@
 
 #include "component.h"
 
+/** @cond */
 DECLARE_COMPONENT(log);
+/** @endcond */
 
 /**
  * Logging levels.

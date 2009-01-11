@@ -75,6 +75,7 @@ static cfg_opt_t options[] = {
     CFG_END()
 };
 
+/** @ingroup components */
 component sql_component = {
     sql_initialize,
     sql_shutdown,
