@@ -173,7 +173,22 @@ void server(int fd, struct sockaddr_in *addr)
 
                     lo(LOG_DEBUG, "server: query '%s'", sql);
 
-                    command_delegate_all();
+                    switch (sql_get_type(sql)) {
+                    case SQL_TYPE_MASTER:
+                        command_delegate_master();
+                        break;
+                    case SQL_TYPE_PARTITIONED:
+                        {
+                            long *foo = sql_get_map_keys(sql);
+                            if (foo) {
+                            } else {
+                                lo(LOG_INFO,
+                                   "server: XX: not doing the right thing");
+                                command_delegate_all();
+                            }
+                            break;
+                        }
+                    }
 
                     free(sql);
                     break;

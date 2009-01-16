@@ -20,6 +20,21 @@ typedef enum {
     SQL_TABLE_TYPE_PARTITIONED
 } sql_table_type;
 
+typedef enum {
+    SQL_TYPE_MASTER,
+    SQL_TYPE_PARTITIONED
+} sql_type;
+
+/**
+ * Determine the type of a given query
+ *
+ * @param[in] sql the incoming query string
+ * @return table type
+ */
+sql_type sql_get_type(char *sql);
+
+long *sql_get_map_keys(char *sql);
+
 /**
  * Determine the type of a given table (master or partitioned)
  *
