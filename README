@@ -1,0 +1,23 @@
+pdb - MySQL and Postgres sharding proxy
+
+**** IMPORTANT ****
+This work is not complete or maintained! The most similar ative
+project that I'm aware of is spock proxy, which is over here:
+http://spockproxy.sourceforge.net/
+
+Description
+===========
+
+pdb intends to be a proxy which hides the details of a "sharded" database from
+application/SQL developers.
+
+That is, application developers continue to write their code as if there were just
+a single monolitic database. pdb translates and proxies the application's requests
+to the appropriate shard(s), in parallel if possible, and marshalls the responses
+back to the application.
+
+Current state:
+ . mysql protocol reverse-engineered
+ . connection and non-query command proxying to mysql
+ . basic hash-based sharding logic
+ . 'update' queries shard correctly
